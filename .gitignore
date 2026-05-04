@@ -1,2 +1,26 @@
-bin
-obj
+# Compiled binaries
+bin/creepyportrait
+bin/creepyportrait.app/
+
+# Build artifacts
+obj/
+*.o
+*.d
+
+# openFrameworks compiled output
+bin/data/.gitkeep
+
+# macOS
+.DS_Store
+**/.DS_Store
+__MACOSX/
+
+# VS Code
+.vscode/
+
+# Simulator (not part of the Pi project)
+*.html
+creepy_portrait_simulator*
+
+# Logs
+*.log

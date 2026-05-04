@@ -26,7 +26,8 @@ void main(){
 	vec3 normalizedLight = normalize(lightDirection);
 	vec3 normalizedCamera = normalize(cameraDirection);
 
-	vec3 normal = normalize(texture2D(normalTex, texCoordVarying).xyz * 2.0 - 1.0);
+	// Modern GLSL: texture() replaces deprecated texture2D()
+	vec3 normal = normalize(texture(normalTex, texCoordVarying).xyz * 2.0 - 1.0);
 
 	float lambert = clamp(dot(normal, normalizedLight), 0.0, 1.0);
 

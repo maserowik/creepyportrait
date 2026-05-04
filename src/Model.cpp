@@ -19,14 +19,19 @@ Model::Model(initializer_list<string> meshNames,
 		meshes[i].load(name);
 		i += 1;
 	}
-	// Load textures
-	diffuse.loadImage(diffuseName);
-	specular.loadImage(specularName);
+	// Load textures - modern OF uses load() instead of deprecated loadImage()
+	diffuse.load(diffuseName);
+	specular.load(specularName);
 	if (useNormalMapping) {
-		ambient.loadImage(ambientName);
-		normal.loadImage(normalName);
+		ambient.load(ambientName);
+		normal.load(normalName);
 		// Generate tangent values for normal mapping
 		transform(begin(meshes), end(meshes), back_inserter(tangents), Model::generateTangents);
+		// Build VBOs once here — they are reused every frame in draw()
+		vbos.resize(meshes.size());
+		for (unsigned int i = 0; i < meshes.size(); ++i) {
+			vbos[i].setMesh(meshes[i], GL_STATIC_DRAW);
+		}
 	}
 	// Save scaling and translation values
 	this->uniformScale = uniformScale;
@@ -36,21 +41,45 @@ Model::Model(initializer_list<string> meshNames,
 
 void Model::draw(ofShader& shader) {
 	// Scale and translate the model into position.
-	ofRotateY(rotateY);
+	// Modern OF: use ofRotateDeg() instead of deprecated ofRotateY()
+	ofRotateDeg(rotateY, 0, 1, 0);
 	ofScale(uniformScale, uniformScale, uniformScale);
-	ofTranslate(0, translateY, 0); 
+	ofTranslate(0, translateY, 0);
 	// Set shader inputs and draw meshes.
-	shader.setUniformTexture("diffuseTex", diffuse, 1);
-	shader.setUniformTexture("specularTex", specular, 2);
+	// Modern OF: pass .getTexture() explicitly — passing ofImage directly is deprecated
+	shader.setUniformTexture("diffuseTex", diffuse.getTexture(), 1);
+	shader.setUniformTexture("specularTex", specular.getTexture(), 2);
 	if (useNormalMapping) {
-		shader.setUniformTexture("ambientTex", ambient, 3);
-		shader.setUniformTexture("normalTex", normal, 4);
+		shader.setUniformTexture("ambientTex", ambient.getTexture(), 3);
+		shader.setUniformTexture("normalTex", normal.getTexture(), 4);
+	} else {
+		// Bind diffuse as ambient fallback so lighting_gl's ambientTex sampler
+		// always reads something defined (avoids undefined behaviour on that path).
+		shader.setUniformTexture("ambientTex", diffuse.getTexture(), 3);
 	}
 	for (unsigned int i = 0; i < meshes.size(); ++i) {
 		if (useNormalMapping) {
-			shader.setAttribute4fv("tangent", tangents[i].data(), 4);
+			// First draw only: query the tangent attribute location from the live
+			// shader and upload tangent data into each VBO. After this the tangent
+			// data lives entirely on the GPU and setAttributeData is never called again.
+			if (cachedTangentLoc == -2) {
+				cachedTangentLoc = shader.getAttributeLocation("tangent");
+				if (cachedTangentLoc >= 0) {
+					for (unsigned int j = 0; j < vbos.size(); ++j) {
+						vbos[j].setAttributeData(cachedTangentLoc,
+												 tangents[j].data(),
+												 4,                             // 4 floats per vertex (xyzw)
+												 (int)(tangents[j].size() / 4), // vertex count
+												 GL_STATIC_DRAW,
+												 sizeof(float) * 4);
+					}
+				}
+			}
+			// Every frame: just draw — no data upload.
+			vbos[i].drawElements(GL_TRIANGLES, meshes[i].getNumIndices());
+		} else {
+			meshes[i].drawFaces();
 		}
-		meshes[i].drawFaces();
 	}
 }
 
@@ -63,21 +92,22 @@ vector<float> Model::generateTangents(ofMesh& mesh) {
 
 	vector<float> tangents(vertices.size()*4);
 
-	vector<ofVec3f> tan1(vertices.size(), ofVec3f(0,0,0));
-	vector<ofVec3f> tan2(vertices.size(), ofVec3f(0,0,0));
+	// Modern OF uses glm::vec3 instead of deprecated ofVec3f
+	vector<glm::vec3> tan1(vertices.size(), glm::vec3(0,0,0));
+	vector<glm::vec3> tan2(vertices.size(), glm::vec3(0,0,0));
 
 	for (unsigned int i = 0; i < triangles.size(); i += 3) {
 		long i1 = triangles[i];
 		long i2 = triangles[i+1];
 		long i3 = triangles[i+2];
 
-		const ofVec3f& v1 = vertices[i1];
-		const ofVec3f& v2 = vertices[i2];
-		const ofVec3f& v3 = vertices[i3];
+		const glm::vec3& v1 = vertices[i1];
+		const glm::vec3& v2 = vertices[i2];
+		const glm::vec3& v3 = vertices[i3];
 
-		const ofVec2f& w1 = texcoords[i1];
-		const ofVec2f& w2 = texcoords[i2];
-		const ofVec2f& w3 = texcoords[i3];
+		const glm::vec2& w1 = texcoords[i1];
+		const glm::vec2& w2 = texcoords[i2];
+		const glm::vec2& w3 = texcoords[i3];
 
 		float x1 = v2.x - v1.x;
 		float x2 = v3.x - v1.x;
@@ -92,10 +122,10 @@ vector<float> Model::generateTangents(ofMesh& mesh) {
 		float t2 = w3.y - w1.y;
 
 		float r = 1.0F / (s1 * t2 - s2 * t1);
-		ofVec3f sdir((t2 * x1 - t1 * x2) * r, 
+		glm::vec3 sdir((t2 * x1 - t1 * x2) * r, 
 					 (t2 * y1 - t1 * y2) * r,
 					 (t2 * z1 - t1 * z2) * r);
-		ofVec3f tdir((s1 * x2 - s2 * x1) * r,
+		glm::vec3 tdir((s1 * x2 - s2 * x1) * r,
 					 (s1 * y2 - s2 * y1) * r,
 					 (s1 * z2 - s2 * z1) * r);
 
@@ -109,15 +139,15 @@ vector<float> Model::generateTangents(ofMesh& mesh) {
 	}
 
 	for (unsigned int i = 0; i < vertices.size(); ++i) {
-		ofVec3f& n = normals[i];
-		ofVec3f& t = tan1[i];
+		glm::vec3& n = normals[i];
+		glm::vec3& t = tan1[i];
 
 		// Gram-Schmidt orthogonalize
-		auto tangent = (t - n * n.dot(t)).normalize();
+		auto tangent = glm::normalize(t - n * glm::dot(n, t));
 		// Calculate handedness
-		float w = (n.cross(t).dot(tan2[i]) < 0.0) ? -1.0 : 1.0;
+		float w = (glm::dot(glm::cross(n, t), tan2[i]) < 0.0f) ? -1.0f : 1.0f;
 
-		tangents[i*4] = tangent.x;
+		tangents[i*4]   = tangent.x;
 		tangents[i*4+1] = tangent.y;
 		tangents[i*4+2] = tangent.z;
 		tangents[i*4+3] = w;

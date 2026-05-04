@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "ofMain.h"
+#include "glm/glm.hpp"
 
 #include "Model.h"
 #include "VideoSource.h"
@@ -42,30 +43,20 @@ public:
 	// True/false if video and detected faces should be displayed.
 	bool 		displayVideo;
 
-	// Number of face detection samples to buffer.  The buffered faces will be used
-	// to calculate the position of the detected face.  A value of 1 is no buffering
-	// which can be somewhat noisey (i.e. the detected face moves around a lot).
-	// Using a higher number will smooth out the noise, but not easily catch fast moving
-	// faces.
+	// Number of face detection samples to buffer.
 	int 		faceBufferSize;
 
-	// How far away from the camera to assume detected faces lie.  Ideally this should
-	// be scaled in some way, perhaps based on the area of the detected face.  For now
-	// a fixed value of 10 works well.  Increase or decrease this if the skull looks too
-	// far or not far enough to the left and right.
+	// How far away from the camera to assume detected faces lie.
 	float 		faceDepth = 10.0;
 
 	// How often to delay between runs of the face detection logic, in seconds.
-	// On the Raspberry Pi face detection of 160x120 video takes about 500-800ms, so use 
-	// a large value like 2 or 3.
-	// On a PC this can be quite low, around 0.01 or less (but you should bump up faceBufferSize
-	// so the detected face isn't as noisey).
 	float 		faceUpdateDelay;
 
 	// Position of the point light source in world coordinates.
+	// Using ofVec4f for compatibility with existing uniform setup; internally cast to glm
 	ofVec4f 	lightPosition = ofVec4f(-600, 100, 600, 1);
 
-	// The model(s) to load for rendering.  Can be one of 'skull', 'jackevil', 'jackhappy', or 'all'.
+	// The model(s) to load for rendering.
 	std::string model;
 
 	// How long to wait for no detected face before the skull rotates back to 0.
@@ -74,8 +65,7 @@ public:
 	// True/false to render the skull (true) or evil jacklantern (false).
 	bool 		renderSkullMode = true;
 
-	// True/false if the skull should just rotate around the Y axis instead of looking
-	// in the direction of detected faces.  Good for testing the shader.
+	// True/false if the skull should just rotate around the Y axis.
 	bool 		rotateSkull = false;
 
 	// Velocity of the rotating skull in degrees/second.
@@ -85,29 +75,24 @@ public:
 	std::string	skullFragmentShader;
 	std::string	skullVertexShader;
 
-	// Enable or disable normal/bump mapping in the shader.  Unfortunately bump
-	// mapping doesn't currently work on the Raspberry Pi (but looks good on the PC).
+	// Enable or disable normal/bump mapping in the shader.
 	bool 		useNormalMapping;
 
 	// Reference to a video source.
 	std::shared_ptr<IVideoSource> video;
 
-	// Diagonal field of view of the camera, in degrees.  
-	// For the Raspberry Pi camera this should be about 60.
-	// For most PC webcams a value of 60 is good too.  If you have a wider angle web cam
-	// or know the specific diagonal FOV, set this higher.  A Microsoft Lifecam HD cinema
-	// I test with uses a 73 degree diagonal FOV.
+	// Diagonal field of view of the camera, in degrees.
 	float 		videoFOV;
 
 	// Pixel offset to use when rendering video on the screen.
-	ofVec2f 	videoOffset = ofVec2f(10,10);
+	glm::vec2 	videoOffset = glm::vec2(10, 10);
 
 private:
 	void updateCurrentRotation();
-	ofVec2f cameraPointToAngle(const ofVec2f& point);
-	ofVec2f cameraAngleToModelAngle(const ofVec2f& angle, float area);
+	glm::vec2 cameraPointToAngle(const glm::vec2& point);
+	glm::vec2 cameraAngleToModelAngle(const glm::vec2& angle, float area);
 
-	// Internal application state that shouldn't be modified unless you know what you're doing:
+	// Internal application state:
 	ofEasyCam camera;
 	float pixelFocalLength;
 	float faceLastSeen = 0.0;
@@ -118,7 +103,7 @@ private:
 	std::list<Model> models;
 	std::list<Model>::iterator currentModel;
 	VideoFaceDetector detector;
-	ofVec2f currentRotation;
-	ofVec2f targetRotation;
-	ofVec2f oldRotation;
+	glm::vec2 currentRotation;
+	glm::vec2 targetRotation;
+	glm::vec2 oldRotation;
 };

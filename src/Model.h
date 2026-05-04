@@ -34,5 +34,7 @@ private:
 	ofImage normal;
 	std::vector<ofMesh> meshes;
 	std::vector<std::vector<float>> tangents;
+	std::vector<ofVbo> vbos;        // built once in constructor, reused every frame
+	GLint cachedTangentLoc = -2;    // -2 = not yet queried; -1 = queried but not found; >=0 = valid location
 
 };

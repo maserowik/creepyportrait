@@ -1,4 +1,5 @@
 #include "VideoFaceDetector.h"
+#include "glm/glm.hpp"
 
 using namespace std;
 
@@ -7,12 +8,27 @@ VideoFaceDetector::VideoFaceDetector() {
 }
 
 void VideoFaceDetector::setBufferSize(int size) {
-	faceBuffer.resize(size);
+	// Pre-fill with nullptrs so pop_back() is always safe from frame 1
+	faceBuffer.clear();
+	for (int i = 0; i < size; ++i) {
+		faceBuffer.push_back(nullptr);
+	}
 }
 
 void VideoFaceDetector::updateFrame(ofPixels& frame) {
-	// Run Haar detection algorithm.
-	finder.findHaarObjects(frame);
+	// ofxCvHaarFinder requires an ofxCvGrayscaleImage, not raw ofPixels.
+	// Convert the incoming color frame to grayscale first.
+	ofxCvColorImage colorImg;
+	colorImg.allocate(frame.getWidth(), frame.getHeight());
+	colorImg.setFromPixels(frame);
+
+	ofxCvGrayscaleImage grayImg;
+	grayImg.allocate(frame.getWidth(), frame.getHeight());
+	grayImg = colorImg;  // ofxCv handles the color->gray conversion
+
+	// Run Haar detection algorithm on the grayscale image.
+	finder.findHaarObjects(grayImg);
+
 	// Find the face with the largest area
 	auto largestBlob = max_element(begin(finder.blobs), end(finder.blobs), [](ofxCvBlob& b1, ofxCvBlob& b2) {
 		return b1.area < b2.area;
@@ -58,14 +74,14 @@ shared_ptr<ofRectangle> VideoFaceDetector::getCurrentFace() {
 	else if (faces.size() == 1) {
 		return make_shared<ofRectangle>(faces[0]->boundingRect);
 	}
-	// Find the cluster center (average face center).
-	ofVec2f meanPoint = accumulate(begin(faces), end(faces), ofVec2f(0,0), [](ofVec2f sum, shared_ptr<ofxCvBlob> blob) {
-		return sum + ofVec2f(blob->centroid.x, blob->centroid.y);
+	// Find the cluster center (average face center) - modern OF uses glm::vec2
+	glm::vec2 meanPoint = accumulate(begin(faces), end(faces), glm::vec2(0,0), [](glm::vec2 sum, shared_ptr<ofxCvBlob> blob) {
+		return sum + glm::vec2(blob->centroid.x, blob->centroid.y);
 	}) / float(faces.size());
 	// Calculate distances from each face center to the cluster center.
 	vector<float> distances;
 	transform(begin(faces), end(faces), back_inserter(distances), [meanPoint](shared_ptr<ofxCvBlob> blob) {
-		return meanPoint.distance(ofVec2f(blob->centroid.x, blob->centroid.y));
+		return glm::distance(meanPoint, glm::vec2(blob->centroid.x, blob->centroid.y));
 	});
 	// Calculate average and std. deviation of distances.
 	float avgDistance = accumulate(begin(distances), end(distances), 0.0) / float(distances.size());

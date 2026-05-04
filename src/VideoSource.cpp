@@ -6,8 +6,9 @@ using namespace std;
 
 VideoGrabberSource::VideoGrabberSource(int deviceId, int desiredWidth, int desiredHeight) {
 	// Set up and initialize the video grabber.
+	// Modern OF: initGrabber() no longer accepts a 3rd bool parameter
 	video.setDeviceID(deviceId);
-	video.initGrabber(desiredWidth, desiredHeight, true);
+	video.initGrabber(desiredWidth, desiredHeight);
 }
 
 VideoGrabberSource::VideoGrabberSource(const VideoGrabberSource& copy) {
@@ -27,15 +28,18 @@ bool VideoGrabberSource::isFrameNew() {
 }
 		
 ofPixels& VideoGrabberSource::getPixels() {
-	return video.getPixelsRef();
+	// Modern OF: getPixels() replaces deprecated getPixelsRef()
+	return video.getPixels();
 }
 
 int VideoGrabberSource::getWidth() {
-	return video.width;
+	// Modern OF: use getWidth() method, .width public field is deprecated
+	return video.getWidth();
 }
 
 int VideoGrabberSource::getHeight() {
-	return video.height;
+	// Modern OF: use getHeight() method, .height public field is deprecated
+	return video.getHeight();
 }
 
 void VideoGrabberSource::draw(int x, int y, int width, int height) {

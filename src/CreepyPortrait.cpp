@@ -10,16 +10,17 @@ void CreepyPortrait::setup(){
 	// Calculate focal length of video camera (relative to video pixel size).
 	pixelFocalLength = sqrt(pow(video->getWidth()/2.0, 2) + pow(video->getHeight()/2.0, 2))/sin(ofDegToRad(videoFOV/2.0));
 	// Set up model rotation state
-	currentRotation = ofVec2f(0,0);
+	currentRotation = glm::vec2(0, 0);
 	// Set up camera
 	camera.setDistance(cameraDistance);
-	camera.setTarget(ofVec3f(0, 0, 0));
+	camera.setTarget(glm::vec3(0, 0, 0));
 	camera.disableMouseInput();
 	// Set up video face detection buffer.
 	detector.setBufferSize(faceBufferSize);
 	// Load background
-	// Image provided by: http://www.flickr.com/photos/57845051@N00/2884743046/in/photolist-5oV4B5-5y9Emo-5CwHZX-5FmVMm-5FHAVi-5FHBdg-5Pvqej-5QoGWr-5TQnrg-5U1kGK-5UQn9Y-5YtFGg-5YuhYR-63ARFf-6rv6wa-6KhmCY-6PBo3r-6RoBWu-7hAxcY-7isZdJ-7qjH53-7uLzi3-7uNx1m-bBHpKG-9f6MMX-ciGuDS-8idfF6-84MapV-auRVkb-8Uc9Un-9QJM29-aBJLDL-84P6M3-bkqTRy-dqCwjk-7z8TjC-9gcHkG-bCthyt-8VWSxe-9JFMuc-8RXXX3-aUPUkX-9svEM8-bjKDib-bKf5z2-9heXnG-8xG837-aeLZVX-9Pn5fQ-973wYP-7Smks9
-	curtain.loadImage("redcurtain_1024.jpg");
+	// Image provided by: http://www.flickr.com/photos/57845051@N00/2884743046/
+	// Modern OF: load() replaces deprecated loadImage()
+	curtain.load("redcurtain_1024.jpg");
 	// Load lighting shader
 	shader.load(skullVertexShader, skullFragmentShader);
 	// Load models
@@ -79,14 +80,16 @@ void CreepyPortrait::draw(){
 	camera.begin();
 	// Save transformation state
 	ofPushMatrix();
-	// Rotate model
-	ofRotateX(currentRotation.x);
-	ofRotateY(currentRotation.y);
+	// Rotate model - modern OF uses ofRotateDeg() instead of deprecated ofRotateX/Y()
+	ofRotateDeg(currentRotation.x, 1, 0, 0);
+	ofRotateDeg(currentRotation.y, 0, 1, 0);
 	// Set up the shader for rendering.
 	shader.begin();
-	// Transform light from world to camera position.
-	auto lightCameraPosition = camera.getModelViewMatrix()*lightPosition;
-	shader.setUniform4f("lightCameraPosition", lightCameraPosition.x, lightCameraPosition.y, lightCameraPosition.z, 1.0);
+	// Transform light position from world space to camera (view) space.
+	// getCurrentViewMatrix() is the reliable way inside a camera.begin() block in OF 0.12+
+	glm::vec4 lightPos(lightPosition.x, lightPosition.y, lightPosition.z, lightPosition.w);
+	glm::vec4 lightCameraPosition = camera.getModelViewMatrix() * lightPos;
+	shader.setUniform4f("lightCameraPosition", lightCameraPosition.x, lightCameraPosition.y, lightCameraPosition.z, 1.0f);
 	// Draw the current model.
 	currentModel->draw(shader);
 	// Reset all the modified rendering state.
@@ -102,7 +105,9 @@ void CreepyPortrait::draw(){
 			ofSetColor(0, 255, 0);
 			ofNoFill();
 			auto currentFace = detector.getDetectedFace();
-			ofRect(currentFace + ofPoint(videoOffset.x, videoOffset.y, 0));
+			// Modern OF: ofDrawRectangle() replaces deprecated ofRect()
+			ofDrawRectangle(currentFace.x + videoOffset.x, currentFace.y + videoOffset.y,
+							currentFace.width, currentFace.height);
 			ofPopStyle();
 		}
 	}
@@ -129,8 +134,9 @@ void CreepyPortrait::updateCurrentRotation() {
 			if (detector.isFaceDetected()) {
 				faceLastSeen = time;
 				auto currentFace = detector.getDetectedFace();
-				auto angle = cameraAngleToModelAngle(cameraPointToAngle(ofVec2f(currentFace.getCenter().x, currentFace.getCenter().y)),
-					currentFace.getArea());
+				// Use glm::vec2 for position math
+				glm::vec2 faceCenter(currentFace.getCenter().x, currentFace.getCenter().y);
+				auto angle = cameraAngleToModelAngle(cameraPointToAngle(faceCenter), currentFace.getArea());
 				// Flip x axis because video is mirrored
 				angle.x *= -1;
 				oldRotation = targetRotation;
@@ -154,29 +160,30 @@ void CreepyPortrait::updateCurrentRotation() {
 		// the next face detection.
 		else if (targetRotation != currentRotation) {
 			float position = ofClamp((time - faceLastUpdate)/faceUpdateDelay, 0, 1);
-			currentRotation = oldRotation.getInterpolated(targetRotation, position);
+			// Modern OF: use glm::mix() instead of deprecated ofVec2f::getInterpolated()
+			currentRotation = glm::mix(oldRotation, targetRotation, position);
 		}
 	}
 }
 
-ofVec2f CreepyPortrait::cameraPointToAngle(const ofVec2f& point) {
+glm::vec2 CreepyPortrait::cameraPointToAngle(const glm::vec2& point) {
 	// Make the center of the video 0, 0.
 	int x = point.x - (video->getWidth()/2);
 	int y = point.y - (video->getHeight()/2);
 	// Find the angle to the point.
 	float xAngle = asin(x/pixelFocalLength);
 	float yAngle = asin(y/pixelFocalLength);
-	return ofVec2f(ofRadToDeg(xAngle), ofRadToDeg(yAngle));
+	return glm::vec2(ofRadToDeg(xAngle), ofRadToDeg(yAngle));
 }
 
-ofVec2f CreepyPortrait::cameraAngleToModelAngle(const ofVec2f& angle, float area) {
+glm::vec2 CreepyPortrait::cameraAngleToModelAngle(const glm::vec2& angle, float area) {
 	// Determine what angle the model should face to look at a point along the specified camera angle.
 	// This angle is not the same as the camera angle because the model is 'behind' the camera.
 	// TODO: Scale distance based on detected face distance to better approximate face distance.
 	float distance = faceDepth;
 	float xWidth = sin(ofDegToRad(angle.x));
 	float yWidth = sin(ofDegToRad(angle.y));
-	return ofVec2f(ofRadToDeg(asin(xWidth/distance)), ofRadToDeg(asin(yWidth/distance)));
+	return glm::vec2(ofRadToDeg(asin(xWidth/distance)), ofRadToDeg(asin(yWidth/distance)));
 }
 
 //--------------------------------------------------------------
