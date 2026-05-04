@@ -139,7 +139,11 @@ int main(int argc, char* argv[]){
 	settings.windowMode = OF_FULLSCREEN;
 #else
 	ofGLWindowSettings settings;
+<<<<<<< HEAD
 	settings.setGLVersion(3, 2);
+=======
+	settings.setGLVersion(2, 1);
+>>>>>>> 82e667978d58b3212c4fec28e88316c5e1a8fe11
 	settings.setSize(1024, 768);
 	settings.windowMode = OF_WINDOW;
 #endif
@@ -148,3 +152,4 @@ int main(int argc, char* argv[]){
 	configureApp(videoDeviceId, usePiCamera, model, app);
 	ofRunApp(app);
 }
+
