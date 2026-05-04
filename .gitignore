@@ -18,9 +18,10 @@ __MACOSX/
 # VS Code
 .vscode/
 
-# Simulator (not part of the Pi project)
-*.html
-creepy_portrait_simulator*
+# Simulator standalone file (not part of the Pi project)
+creepy_portrait_simulator*.html
+# Allow the repo simulator
+!simulator/index.html
 
 # Logs
 *.log
