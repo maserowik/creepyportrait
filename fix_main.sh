@@ -1,3 +1,4 @@
+cat > ~/openFrameworks/apps/myApps/creepyportrait/src/main.cpp << 'CPPEOF'
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -139,7 +140,7 @@ int main(int argc, char* argv[]){
 	settings.windowMode = OF_FULLSCREEN;
 #else
 	ofGLWindowSettings settings;
-	settings.setGLVersion(2, 1);
+	settings.setGLVersion(3, 2);
 	settings.setSize(1024, 768);
 	settings.windowMode = OF_WINDOW;
 #endif
@@ -149,3 +150,5 @@ int main(int argc, char* argv[]){
 	ofRunApp(app);
 }
 
+CPPEOF
+echo "main.cpp written successfully"
