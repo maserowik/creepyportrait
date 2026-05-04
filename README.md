@@ -1,8 +1,12 @@
 # Creepy Portrait
 
-A face-tracking haunted portrait for Raspberry Pi 4/5. Point a USB webcam at anyone and a 3D skull (or jack-o-lantern) slowly turns to follow them — fullscreen, on a red curtain background, booting automatically on startup.
+A face-tracking haunted portrait for Raspberry Pi 4/5. Point a USB webcam at
+anyone and a 3D skull (or jack-o-lantern) slowly turns to follow them —
+fullscreen, on a red curtain background, booting automatically on startup.
 
-Built on [openFrameworks 0.12+](https://openframeworks.cc). Originally created by [Tony DiCola / Adafruit (2013)](https://learn.adafruit.com/creepy-face-tracking-portrait) and modernized for current hardware and OF versions.
+Built on [openFrameworks 0.12+](https://openframeworks.cc). Originally created
+by [Tony DiCola / Adafruit (2013)](https://learn.adafruit.com/creepy-face-tracking-portrait)
+and modernized for current hardware and OS versions.
 
 ---
 
@@ -16,23 +20,42 @@ Built on [openFrameworks 0.12+](https://openframeworks.cc). Originally created b
 | HDMI monitor | Pi 4/5 use micro-HDMI |
 | USB-C power supply | 5V/3A for Pi 4 · 5V/5A for Pi 5 |
 
-> **Pi camera module note:** The `pi` argument in the usage output requires the legacy MMAL/OMX camera stack removed in Raspberry Pi OS Bullseye (2021). On modern Pi OS always use a USB webcam with a numeric device ID.
+---
+
+## Simulator
+
+An interactive 3D preview is included in the `simulator/` folder. It uses the
+real models and textures from the project so you can see exactly how the skull
+tracks before building on the Pi.
+
+```bash
+# From the repo root:
+python3 -m http.server 8080
+# Then open: http://localhost:8080/simulator/
+```
+
+Features: all 3 models, 9 camera position options with quality scores, vertical
+tracking toggle, speed and rotation range tuning, live status readouts.
 
 ---
 
 ## Quick Start
 
-Clone directly onto your Pi after completing the openFrameworks install:
+> **Before cloning:** You must first install openFrameworks and all dependencies.
+> See [INSTALL_GUIDE_RPI4.md](INSTALL_GUIDE_RPI4.md) for the full step-by-step guide.
+
+Once openFrameworks is installed and the spinning shapes test passes:
 
 ```bash
 cd ~/openFrameworks/apps/myApps
-git clone https://github.com/maserowik/creepyportrait creepyportrait
+git clone -b update_test https://github.com/maserowik/creepyportrait creepyportrait
 cd creepyportrait
 make -j$(nproc) Release
 ./bin/creepyportrait 0
 ```
 
-See [INSTALL_GUIDE_RPI4.md](INSTALL_GUIDE_RPI4.md) for the complete step-by-step setup guide including openFrameworks installation.
+> **Important:** Run from a terminal on the Pi desktop — not a plain SSH session.
+> X11 must be active (`echo $XDG_SESSION_TYPE` should show `x11`).
 
 ---
 
@@ -50,7 +73,7 @@ See [INSTALL_GUIDE_RPI4.md](INSTALL_GUIDE_RPI4.md) for the complete step-by-step
 ./bin/creepyportrait 0              # skull
 ./bin/creepyportrait 0 jackevil    # evil jack
 ./bin/creepyportrait 0 jackhappy   # happy jack
-./bin/creepyportrait 0 all         # all three, press m to switch
+./bin/creepyportrait 0 all         # all three
 ```
 
 ---
@@ -60,9 +83,18 @@ See [INSTALL_GUIDE_RPI4.md](INSTALL_GUIDE_RPI4.md) for the complete step-by-step
 | Key | Action |
 |-----|--------|
 | `v` | Toggle camera/face-detection overlay |
-| `r` | Toggle auto-rotation mode |
+| `r` | Toggle auto-rotation (test without webcam) |
 | `m` | Cycle to next model (requires `all`) |
 | `Ctrl+C` | Quit |
+
+---
+
+## Known Warnings (Not Errors)
+
+**`[warning] ofGstVideoUtils: update(): ofGstVideoUtils not loaded`**
+This repeating warning appears when no webcam is plugged in. It is harmless —
+the skull still displays correctly. Plug in your USB webcam to stop it, or
+suppress it with `./bin/creepyportrait 0 2>/dev/null`.
 
 ---
 
@@ -73,17 +105,17 @@ mkdir -p ~/.config/autostart
 nano ~/.config/autostart/creepyportrait.desktop
 ```
 
-Paste:
+Paste (replace `creepyportrait` with your username):
 
 ```ini
 [Desktop Entry]
 Type=Application
 Name=Creepy Portrait
-Exec=/bin/bash -c 'cd /home/pi/openFrameworks/apps/myApps/creepyportrait && ./bin/creepyportrait 0'
+Exec=/bin/bash -c 'cd /home/creepyportrait/openFrameworks/apps/myApps/creepyportrait && ./bin/creepyportrait 0'
 X-GNOME-Autostart-enabled=true
 ```
 
-Then enable desktop autologin:
+Enable desktop autologin:
 
 ```bash
 sudo raspi-config
@@ -95,60 +127,34 @@ sudo reboot
 
 ## Tuning
 
-Edit `src/main.cpp` inside the `#ifdef TARGET_RASPBERRY_PI` block, then rebuild with `make -j$(nproc) Release`.
+Edit `src/main.cpp` inside the `#ifdef TARGET_RASPBERRY_PI` block,
+then rebuild with `make -j$(nproc) Release`.
 
 | Setting | Default | Notes |
 |---------|---------|-------|
-| `faceUpdateDelay` | `2.0` | Lower to `0.5`–`1.0` for snappier tracking on Pi 4 |
+| `faceUpdateDelay` | `2.0` | Lower to `0.5`–`1.0` for snappier tracking |
 | `videoFOV` | `60` | Match your webcam — wide-angle needs `75`–`90` |
-| `faceDepth` | `10.0` | Increase if skull barely moves; decrease if it over-rotates |
-| `noFaceResetSeconds` | `6.0` | Time before skull resets to center when face is lost |
-| `videoWidth/Height` | `160x120` | Increase to `320x240` for better detection (uses more CPU) |
-
----
-
-## Troubleshooting
-
-**Skull opens and immediately closes**
-Always run from the project directory:
-```bash
-cd ~/openFrameworks/apps/myApps/creepyportrait
-./bin/creepyportrait 0
-```
-
-**No webcam detected**
-```bash
-ls /dev/video*   # should show /dev/video0
-lsusb            # webcam should appear in list
-```
-
-**Face not tracking** — press `v` to show the camera overlay. If you can see yourself but no green box appears, improve lighting or move closer to the camera.
-
-**`cannot open display` error**
-```bash
-export DISPLAY=:0 && ./bin/creepyportrait 0
-```
-
-**Out of memory during compilation**
-```bash
-sudo dphys-swapfile swapoff
-sudo nano /etc/dphys-swapfile   # set CONF_SWAPSIZE=1024
-sudo dphys-swapfile setup && sudo dphys-swapfile swapon
-```
+| `faceDepth` | `10.0` | Increase if skull barely moves; decrease if over-rotates |
+| `noFaceResetSeconds` | `6.0` | Time before skull resets to center when face lost |
+| `videoWidth/Height` | `160x120` | Increase to `320x240` for better detection |
 
 ---
 
 ## What Changed from the Original
 
-See [MODERNIZATION_NOTES.md](MODERNIZATION_NOTES.md) for the full change log from OF 0.8 (2013) to OF 0.12+.
+See [MODERNIZATION_NOTES.md](MODERNIZATION_NOTES.md) for the full change log
+from OF 0.8 (2013) to OF 0.12+.
 
-Key fixes:
-- All deprecated OF APIs updated
+Key changes:
+- All deprecated OF APIs updated (`loadImage`, `ofRotateY`, `ofVec2f/3f`, etc.)
+- Window setup migrated to `ofGLESWindowSettings` / `ofGLWindowSettings` (OF 0.12 API)
 - GLSL `texture2D` → `texture` in desktop bump shader
 - VBO built once in constructor — no per-frame GPU uploads
-- `ambientTex` fallback binding for non-bump path
+- `ambientTex` fallback binding prevents undefined sampler reads
 - `#include <iomanip>` added for Clang/libc++ compatibility
-- `ofxRPiCameraVideoGrabber` correctly excluded from non-Pi builds
+- `ofxRPiCameraVideoGrabber` excluded from non-Pi builds
+- `ofGLProgrammableRenderer` removed — window settings handle renderer selection
+- Tested and fixed on Raspberry Pi OS Trixie (Debian 13, April 2026)
 
 ---
 
@@ -159,8 +165,8 @@ Key fixes:
 | Phase 1 | ✅ Done | Face tracking skull/jacks — fullscreen, boots on startup |
 | Phase 2 | Planned | Flickering light, mood states, particle effects |
 | Phase 3 | Planned | Sound, mic reactions, jump scares, gesture triggers |
-| Phase 4 | Future | Additional 3D models |
-| Phase 5 | Future | TBD |
+| Phase 4 | Future | Additional 3D models from Video Copilot Halloween pack |
+| Phase 5 | Future | Phone/browser UI to select models and control settings |
 | Phase 6 | Future | Full AI interactivity — voice, face recognition, conversation |
 
 ---
@@ -169,10 +175,12 @@ Key fixes:
 
 **Source code** — Original copyright 2013 Tony DiCola, MIT License.
 
-**3D models and textures** — Copyright [Video Copilot Inc](http://www.videocopilot.net/blog/2012/10/free-halloween-3d-model-pack/). See `bin/data/models/3D_Products_License_Agreement.pdf`.
+**3D models and textures** — Copyright [Video Copilot Inc](http://www.videocopilot.net/blog/2012/10/free-halloween-3d-model-pack/).
+See `bin/data/models/3D_Products_License_Agreement.pdf`.
 
-**Red curtain image** — Copyright Flickr user [sethoscope](http://www.flickr.com/photos/57845051@N00/2884743046/), Creative Commons BY-NC-SA.
+**Red curtain image** — Copyright Flickr user [sethoscope](http://www.flickr.com/photos/57845051@N00/2884743046/),
+Creative Commons BY-NC-SA.
 
 **ofxRPiCameraVideoGrabber** — Copyright Jason Van Cleave.
 
-Modernized for OF 0.12+ / Raspberry Pi 4/5 by [@maserowik](https://github.com/maserowik).
+Modernized for OF 0.12+ / Raspberry Pi 4/5 / Pi OS Trixie by [@maserowik](https://github.com/maserowik).

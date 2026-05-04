@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include "ofMain.h"
+#include "ofGLProgrammableRenderer.h"
 
 #include "CreepyPortrait.h"
 #include "Model.h"
@@ -40,10 +41,6 @@ void printUsage() {
 void configureApp(int videoDeviceId, bool usePiCamera, const string& model, CreepyPortrait* app) {
 	const int videoWidth = 160;
 	const int videoHeight = 120;
-	const int screenWidth = 1024;
-	const int screenHeight = 768;
-
-	ofSetupOpenGL(screenWidth, screenHeight, OF_FULLSCREEN);
 
 	app->displayVideo = true;
 	app->faceBufferSize = 1;
@@ -68,11 +65,7 @@ void configureApp(int videoDeviceId, bool usePiCamera, const string& model, Cree
 void configureApp(int videoDeviceId, bool usePiCamera, const string& model, CreepyPortrait* app) {
 	const int videoWidth = 320;
 	const int videoHeight = 240;
-	const int screenWidth = 1024;
-	const int screenHeight = 768;
 	const bool useNormalMapping = true;
-
-	ofSetupOpenGL(screenWidth, screenHeight, OF_WINDOW);
 
 	if (usePiCamera) {
 		cout << "ERROR: Must be running on a Raspberry Pi to use the pi camera option!" << endl << endl;
@@ -137,8 +130,20 @@ int main(int argc, char* argv[]){
 		cout << "ERROR: Too many command line parameters!" << endl << endl;
 		printUsage();
 	}
-	// Setup the renderer and application.
-	ofSetCurrentRenderer(ofGLProgrammableRenderer::TYPE);
+	// Setup window and application using OF 0.12 API.
+	// Window settings are platform-specific — Pi uses GLES2, desktop uses GL 3.2.
+#ifdef TARGET_RASPBERRY_PI
+	ofGLESWindowSettings settings;
+	settings.setGLESVersion(2);
+	settings.setSize(1024, 768);
+	settings.windowMode = OF_FULLSCREEN;
+#else
+	ofGLWindowSettings settings;
+	settings.setGLVersion(3, 2);
+	settings.setSize(1024, 768);
+	settings.windowMode = OF_WINDOW;
+#endif
+	ofCreateWindow(settings);
 	CreepyPortrait* app = new CreepyPortrait();
 	configureApp(videoDeviceId, usePiCamera, model, app);
 	ofRunApp(app);

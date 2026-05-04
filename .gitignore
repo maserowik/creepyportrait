@@ -24,3 +24,6 @@ creepy_portrait_simulator*
 
 # Logs
 *.log
+
+# One-time patch scripts — not needed after fixes are in the repo
+fix_main.sh
