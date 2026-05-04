@@ -6,24 +6,25 @@ curtain background from the project.
 
 ## How to Run
 
-The simulator loads assets from `bin/data/` using relative paths so it needs
-a local web server — browsers block file:// access for security.
+All assets are embedded in `index.html` — no separate asset loading needed.
 
-**From the repo root, run:**
+**From the repo root:**
 
 ```bash
 python3 -m http.server 8080
 ```
 
-Then open in your browser:
+Then open from **any device on the same WiFi network:**
 
 ```
-http://localhost:8080/simulator/
+http://[Pi IP address]:8080/simulator/
 ```
+
+Find your Pi's IP address with: `hostname -I`
 
 ## What You Can Do
 
-- **Move your mouse** over the portrait — the skull/jack tracks left and right
+- Move your mouse over the portrait — the skull/jack tracks left and right
 - **Camera Position** — try all 9 positions to see how mount location affects tracking quality
 - **Model** — switch between skull, evil jack, and happy jack
 - **Vertical Tracking** — toggle up/down tracking on/off
@@ -32,6 +33,6 @@ http://localhost:8080/simulator/
 
 ## Notes
 
-- The white skull appearance means textures haven't loaded yet — wait a moment
+- The white skull appearance is normal when viewed through VNC — connect a real HDMI monitor for full textures
 - This is a preview tool only — actual rendering on the Pi looks better with hardware OpenGL
-- The simulator uses Three.js r128 via CDN — requires internet on first load
+- Three.js r128 is loaded via CDN — requires internet connection on first load
