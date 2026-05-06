@@ -6,8 +6,10 @@ using namespace std;
 VideoFaceDetector::VideoFaceDetector() {
 	finder.setup("haarcascade_frontalface_default.xml");
 	finder.setScaleHaar(1.05);
-	finder.setNeighbors(1);	
+	finder.setNeighbors(5);
+	finder.setMinAreaRadius(30);	
 }
+
 
 void VideoFaceDetector::setBufferSize(int size) {
 	// Pre-fill with nullptrs so pop_back() is always safe from frame 1
