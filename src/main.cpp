@@ -39,14 +39,15 @@ void printUsage() {
 
 // Setup default config for Raspberry Pi.
 void configureApp(int videoDeviceId, bool usePiCamera, const string& model, CreepyPortrait* app) {
-	const int videoWidth = 160;
-	const int videoHeight = 120;
+	const int videoWidth = 640;
+	const int videoHeight = 480;
 
 	app->displayVideo = true;
 	app->faceBufferSize = 1;
-	app->faceUpdateDelay = 2.0;
+	app->faceUpdateDelay = 0.5;
 	app->model = model;
 	app->noFaceResetSeconds = 6.0;
+	app->faceDepth = 0.05;
 	app->skullFragmentShader = "lighting_es.frag";
 	app->skullVertexShader = "lighting_es.vert";
 	Model::useNormalMapping = false;

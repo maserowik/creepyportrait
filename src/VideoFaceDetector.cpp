@@ -4,7 +4,9 @@
 using namespace std;
 
 VideoFaceDetector::VideoFaceDetector() {
-	finder.setup("haarcascade_frontalface_default.xml");	
+	finder.setup("haarcascade_frontalface_default.xml");
+	finder.setScaleHaar(1.05);
+	finder.setNeighbors(1);	
 }
 
 void VideoFaceDetector::setBufferSize(int size) {

@@ -181,9 +181,7 @@ glm::vec2 CreepyPortrait::cameraAngleToModelAngle(const glm::vec2& angle, float 
 	// This angle is not the same as the camera angle because the model is 'behind' the camera.
 	// TODO: Scale distance based on detected face distance to better approximate face distance.
 	float distance = faceDepth;
-	float xWidth = sin(ofDegToRad(angle.x));
-	float yWidth = sin(ofDegToRad(angle.y));
-	return glm::vec2(ofRadToDeg(asin(xWidth/distance)), ofRadToDeg(asin(yWidth/distance)));
+ 	return glm::vec2(angle.x * 2.0, angle.y * 2.0);
 }
 
 //--------------------------------------------------------------
