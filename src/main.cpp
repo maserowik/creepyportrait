@@ -142,7 +142,7 @@ int main(int argc, char* argv[]){
 	ofGLWindowSettings settings;
 	settings.setGLVersion(3, 2);
 	settings.setSize(1024, 768);
-	settings.windowMode = OF_WINDOW;
+	settings.windowMode = OF_FULLSCREEN;
 #endif
 	ofCreateWindow(settings);
 	CreepyPortrait* app = new CreepyPortrait();

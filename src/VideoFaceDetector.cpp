@@ -7,7 +7,6 @@ VideoFaceDetector::VideoFaceDetector() {
 	finder.setup("haarcascade_frontalface_default.xml");
 	finder.setScaleHaar(1.05);
 	finder.setNeighbors(5);
-	finder.setMinAreaRadius(30);	
 }
 
 
