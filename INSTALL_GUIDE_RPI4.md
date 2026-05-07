@@ -20,7 +20,7 @@ jack-o-lantern) slowly turns to follow them.
 |------|-------|
 | Raspberry Pi 4 or Pi 5 | Pi 4: 2GB minimum, 4GB recommended. Pi 5: any RAM size. |
 | MicroSD card | 16GB minimum, Class 10 / A1 or better |
-| USB webcam | Logitech C270 or C920 recommended |
+| USB webcam | Logitech C170 works for testing. C270 or C920 recommended for wall mount. |
 | HDMI monitor + cable | Pi 4 and Pi 5 use micro-HDMI — you may need an adapter |
 | USB keyboard | Just for setup |
 | Power supply | Official USB-C: 5V/3A for Pi 4, 5V/5A for Pi 5. No phone chargers. |
@@ -264,19 +264,29 @@ try a different USB port.
 
 ```bash
 cd ~/openFrameworks/apps/myApps/creepyportrait
-./bin/creepyportrait 0
+MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0
 ```
+
+> **Why these are needed:**
+> `MESA_GL_VERSION_OVERRIDE=3.3` — forces Mesa to expose OpenGL 3.3 which the shaders require. Without this the app may crash or render incorrectly on Pi 4.
+> `GST_V4L2_USE_LIBV4L2=1` — tells GStreamer to use libv4l2 for webcam access, which fixes compatibility issues with some USB webcams including the C170.
 
 The window opens fullscreen. Step back 1–2 metres, face the camera, and
 wait 2–3 seconds. The skull will slowly turn to follow you.
 
+> **C170 users:** The C170 has a fixed focus lens optimised for around 1 metre.
+> For best detection stay close to that distance. Upgrade to a C920 for wall mount
+> use where people will be at varying distances.
+
 **Try all three models:**
 
 ```bash
-./bin/creepyportrait 0 jackevil    # evil jack-o-lantern
-./bin/creepyportrait 0 jackhappy   # happy jack-o-lantern
-./bin/creepyportrait 0 all         # all three, press m to cycle
+MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0 jackevil    # evil jack-o-lantern
+MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0 jackhappy   # happy jack-o-lantern
+MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0 all         # all three, press m to cycle
 ```
+
+> **Note — model switching:** The `m` key only works when launched with `all`. launching with a single model name like `skull` means there is only one model loaded so `m` appears to do nothing.
 
 > **Note — Pi camera not supported:** The `pi` argument crashes on modern
 > Pi OS (Bullseye 2021 and later). Always use a USB webcam with a numeric
@@ -290,7 +300,7 @@ wait 2–3 seconds. The skull will slowly turn to follow you.
 |-----|-------------|
 | `v` | Toggle video overlay — shows camera feed and green box around detected faces |
 | `r` | Toggle auto-rotation — skull spins on its own, good for testing without webcam |
-| `m` | Switch to next model (only works when launched with `all`) |
+| `m` | Switch to next model — **only works when launched with `all`, does nothing with a single model** |
 | `Ctrl+C` | Quit |
 
 ---
@@ -310,7 +320,7 @@ nano ~/.config/autostart/creepyportrait.desktop
 [Desktop Entry]
 Type=Application
 Name=Creepy Portrait
-Exec=/bin/bash -c 'cd /home/creepyportrait/openFrameworks/apps/myApps/creepyportrait && ./bin/creepyportrait 0'
+Exec=/bin/bash -c 'cd /home/creepyportrait/openFrameworks/apps/myApps/creepyportrait && MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0'
 X-GNOME-Autostart-enabled=true
 ```
 
@@ -335,15 +345,114 @@ sudo reboot
 ## Tuning for Better Tracking
 
 Edit `src/main.cpp` inside the `#ifdef TARGET_RASPBERRY_PI` block.
+Edit `src/CreepyPortrait.cpp` for the angle multiplier setting.
 After any change rebuild with `make -j$(nproc) Release`.
 
-| Setting | Default | What to change |
-|---------|---------|---------------|
-| `faceUpdateDelay` | `2.0` | Lower to `0.5`–`1.0` for snappier tracking on Pi 4 |
-| `videoFOV` | `60` | Match your webcam. Wide-angle webcams need `75`–`90` |
-| `faceDepth` | `10.0` | Increase if skull barely moves; decrease if it over-rotates |
-| `noFaceResetSeconds` | `6.0` | Time before skull resets to center when face is lost |
-| `videoWidth/Height` | `160x120` | Increase to `320x240` for better detection (uses more CPU) |
+---
+
+### `faceUpdateDelay`
+**Current optimised value: `0.01`** *(in `src/main.cpp`)*
+
+How long in seconds to wait between face detection runs.
+
+- **Lower** = more frequent detection, snappier tracking, higher CPU load
+- **Higher** = less frequent detection, smoother animation, lower CPU load
+- `0.01` runs detection as fast as possible — increase to `0.5`–`1.0` if the Pi feels sluggish or the animation is choppy
+
+---
+
+### `videoFOV`
+**Current value: `60`** *(in `src/main.cpp`)*
+
+The diagonal field of view of your webcam in degrees. This must match your camera's actual spec or the skull will over or under rotate.
+
+- **Too low** = skull over-rotates and overshoots faces at the edges of the frame
+- **Too high** = skull under-rotates and barely moves even when a face moves far left or right
+- Logitech C170 = `58`, Logitech C270 = `60`, Logitech C920 = `78`
+
+---
+
+### `faceDepth`
+**Current optimised value: `20.0`** *(in `src/main.cpp`)*
+
+An assumed distance value used in the rotation angle calculation. Does not represent a real physical distance — it is a tuning multiplier that scales how much the skull rotates in response to a detected face.
+
+- **Higher** = skull rotates more aggressively to follow faces, more dramatic movement
+- **Lower** = skull rotates less, subtle movement, may feel unresponsive
+- If the skull barely moves try increasing this first. If the skull wildly overshoots try decreasing it.
+
+---
+
+### `noFaceResetSeconds`
+**Current value: `6.0`** *(in `src/main.cpp`)*
+
+How many seconds to wait after losing a detected face before the skull slowly rotates back to center.
+
+- **Higher** = skull holds its last position longer before resetting — good for busy rooms where people move in and out of frame frequently
+- **Lower** = skull snaps back to center quickly after a person walks away
+- For a Halloween display `6.0`–`10.0` works well to avoid constant resetting
+
+---
+
+### `videoWidth` / `videoHeight`
+**Current optimised value: `320x240`** *(in `src/main.cpp`)*
+
+The resolution the face detector runs at. Higher resolution gives the detector more detail to work with but uses more CPU.
+
+- **Higher** (`320x240`, `640x480`) = better detection at distance and in low light, more CPU load
+- **Lower** (`160x120`) = faster detection, less CPU, may miss faces at distance or in poor lighting
+- `320x240` is the recommended balance for Pi 4. Only increase to `640x480` on Pi 5.
+
+---
+
+### `angle.y` multiplier
+**Current optimised value: `4.0`** *(in `src/CreepyPortrait.cpp`)*
+
+Find the line: `return glm::vec2(angle.x * 2.0, angle.y * 4.0);`
+
+Scales how much the skull rotates vertically (up/down) in response to a detected face position. The `angle.x` value controls left/right rotation.
+
+- **Higher `angle.y`** = more up/down movement, skull reacts more to vertical face position changes
+- **Lower `angle.y`** = less up/down movement, skull stays more level regardless of face height
+- **Higher `angle.x`** = more left/right rotation range
+- **Lower `angle.x`** = more subtle left/right movement
+- The Haar face detector is less sensitive vertically than horizontally, which is why `angle.y` is set higher than `angle.x`
+
+---
+
+### `setNeighbors`
+**Current optimised value: `5`** *(in `src/VideoFaceDetector.cpp`)*
+
+How many overlapping detections are required before something is confirmed as a real face. This is the most important setting for reducing false positives.
+
+- **Higher** = fewer false positives, more stable tracking, may miss faces in poor lighting
+- **Lower** = more sensitive, picks up faces easier but also detects background objects as faces
+- `1` is too sensitive — background objects get detected as faces
+- `5` is the recommended balance — stable tracking with minimal false positives
+- If the detector stops finding your face try dropping to `3` or `4`
+
+---
+
+### `setScaleHaar`
+**Current value: `1.05`** *(in `src/VideoFaceDetector.cpp`)*
+
+The scale step used when scanning the image at multiple sizes to find faces.
+
+- **Lower** (e.g. `1.05`) = more thorough scan, finds faces at more sizes, slower
+- **Higher** (e.g. `1.2`) = faster scan, may miss faces at certain distances
+- `1.05` is the recommended value — leave this alone unless CPU is struggling
+
+---
+
+### `setMinAreaRadius`
+**Current optimised value: `30`** *(in `src/VideoFaceDetector.cpp`)*
+
+The minimum size in pixels a detected region must be to be considered a face. Filters out small false positives from distant objects or background patterns.
+
+- **Higher** = only detects larger/closer faces, ignores small distant detections
+- **Lower** = detects smaller/more distant faces but increases false positives
+- `30` works well at 1–3 metre range with `320x240` resolution
+- If upgrading to `640x480` resolution consider increasing to `50`–`60`
 
 ---
 
@@ -355,7 +464,7 @@ cannot open the video device. The skull will still display correctly.
 To stop the warnings: plug in your USB webcam. To suppress them while
 testing without a webcam:
 ```bash
-./bin/creepyportrait 0 2>/dev/null
+MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0 2>/dev/null
 ```
 
 **`Failed to detect any supported platform` or `GLXBadFBConfig`**
@@ -448,6 +557,18 @@ git clone -b update_test https://github.com/maserowik/creepyportrait creepyportr
 | Pi 1 / 2 / Zero | ❌ No | Too slow, wrong GPU, 32-bit only |
 
 **If your board is not in the ✅ column, stop here — it will not work.**
+
+---
+
+## Webcam Reference
+
+| Camera | FOV | Focus | Low Light | Notes |
+|--------|-----|-------|-----------|-------|
+| Logitech C170 | 58° | Fixed | Basic | Good for testing, limited range |
+| Logitech C270 | 60° | Fixed | Good | Solid all-rounder |
+| Logitech C920 | 78° | Auto | Excellent | Recommended for wall mount |
+
+Set `videoFOV` in `src/main.cpp` to match your camera's FOV value above.
 
 ---
 
