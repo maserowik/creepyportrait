@@ -57,6 +57,20 @@ void CreepyPortrait::setup(){
 	currentModel = begin(models);
 	// Prime the time delta for the first update loop run.
 	lastUpdate = ofGetElapsedTimef();
+
+	// Phase 3 - Eye setup
+	eyeShader.load("eye.vert", "eye.frag");
+	eyeTexture.load("eye.png");
+	leftEyeSphere.set(32, 16);
+	rightEyeSphere.set(32, 16);
+	eyeRotation = glm::vec2(0, 0);
+	eyeTargetRotation = glm::vec2(0, 0);
+	twitchTimer = ofRandom(5.0f, 15.0f);
+	dilationTimer = ofRandom(8.0f, 20.0f);
+	dartTimer = ofRandom(6.0f, 12.0f);
+	microsaccadeTimer = ofRandom(0.2f, 0.5f);
+	microsaccadeOffset = glm::vec2(0, 0);
+	dartOffset = glm::vec2(0, 0);
 }
 
 //--------------------------------------------------------------
@@ -95,6 +109,37 @@ void CreepyPortrait::draw(){
 	// Reset all the modified rendering state.
 	shader.end();
 	ofPopMatrix();
+
+	// Phase 3 - Draw eyes (skull only)
+	if (model == "skull" || (model == "all" && currentModel == begin(models))) {
+		ofEnableDepthTest();
+		eyeShader.begin();
+		eyeShader.setUniformTexture("eyeTex", eyeTexture.getTexture(), 0);
+		eyeShader.setUniform1f("pupilScale", pupilScale);
+		// Apply skull rotation and scale to match skull transform
+		ofPushMatrix();
+		ofRotateDeg(currentRotation.x, 1, 0, 0);
+		ofRotateDeg(currentRotation.y, 0, 1, 0);
+		ofTranslate(0, 30, 0);
+		// Left eye
+		ofPushMatrix();
+		ofTranslate(-58, 10, 225);
+		ofRotateDeg(eyeRotation.x + twitchAmount + microsaccadeOffset.x, 1, 0, 0);
+		ofRotateDeg(eyeRotation.y + microsaccadeOffset.y, 0, 1, 0);
+		leftEyeSphere.draw();
+		ofPopMatrix();
+		// Right eye
+		ofPushMatrix();
+		ofTranslate(75, 10, 225);
+		ofRotateDeg(eyeRotation.x + twitchAmount + microsaccadeOffset.x, 1, 0, 0);
+		ofRotateDeg(eyeRotation.y + microsaccadeOffset.y, 0, 1, 0);
+		rightEyeSphere.draw();
+		ofPopMatrix();
+		ofPopMatrix();
+		eyeShader.end();
+		ofDisableDepthTest();
+	}
+
 	camera.end();
 	ofDisableDepthTest();
 	// Draw video and detected face rectangle if enabled.
@@ -166,6 +211,68 @@ void CreepyPortrait::updateCurrentRotation() {
 	}
 	// Phase 2a: jaw lerp every frame
 	currentModel->jawAngle = ofLerp(currentModel->jawAngle, jawOpen ? 25.0f : 0.0f, 0.12f);
+
+	// Phase 3 - Eye tracking and events
+	if (model == "skull" || model == "all") {
+
+		// Eye tracks face with saccade - jump to target instantly
+		if (detector.isFaceDetected()) {
+			eyeTargetRotation.x = ofClamp(targetRotation.x * 0.4f, -15.0f, 15.0f);
+			eyeTargetRotation.y = ofClamp(targetRotation.y * 0.4f, -15.0f, 15.0f);
+		} else {
+			eyeTargetRotation = glm::vec2(0, 0);
+		}
+		eyeRotation = eyeTargetRotation + dartOffset;
+
+		// Microsaccade - tiny random tremor
+		microsaccadeTimer -= delta;
+		if (microsaccadeTimer <= 0.0f) {
+			microsaccadeOffset = glm::vec2(ofRandom(-0.5f, 0.5f), ofRandom(-0.5f, 0.5f));
+			microsaccadeTimer = ofRandom(0.2f, 0.5f);
+		}
+
+		// Twitch event
+		twitchTimer -= delta;
+		if (twitchTimer <= 0.0f && !twitching) {
+			twitching = true;
+			twitchDuration = ofRandom(0.2f, 0.4f);
+			twitchTimer = ofRandom(5.0f, 15.0f);
+		}
+		if (twitching) {
+			twitchDuration -= delta;
+			twitchAmount = ofRandom(-3.0f, 3.0f);
+			if (twitchDuration <= 0.0f) {
+				twitching = false;
+				twitchAmount = 0.0f;
+			}
+		}
+
+		// Dilation event
+		dilationTimer -= delta;
+		if (dilationTimer <= 0.0f) {
+			pupilTargetScale = ofRandom(0.5f, 1.8f);
+			dilationDuration = ofRandom(0.3f, 0.6f);
+			dilationTimer = ofRandom(8.0f, 20.0f);
+		}
+		pupilScale = ofLerp(pupilScale, pupilTargetScale, delta / max(dilationDuration, 0.01f));
+		if (fabs(pupilScale - pupilTargetScale) < 0.01f) pupilTargetScale = 1.0f;
+
+		// Dart event
+		dartTimer -= delta;
+		if (dartTimer <= 0.0f && !darting) {
+			darting = true;
+			dartOffset = glm::vec2(ofRandom(-12.0f, 12.0f), ofRandom(-8.0f, 8.0f));
+			dartHoldTimer = ofRandom(1.0f, 3.0f);
+			dartTimer = ofRandom(6.0f, 12.0f);
+		}
+		if (darting) {
+			dartHoldTimer -= delta;
+			if (dartHoldTimer <= 0.0f) {
+				darting = false;
+				dartOffset = glm::vec2(0, 0);
+			}
+		}
+	}
 }
 
 glm::vec2 CreepyPortrait::cameraPointToAngle(const glm::vec2& point) {
