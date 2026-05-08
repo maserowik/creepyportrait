@@ -11,7 +11,9 @@ Model::Model(initializer_list<string> meshNames,
 		 	 const string& normalName,
 		 	 float uniformScale,
 			 float translateY,
-			 float rotateY) {
+			 float rotateY,
+			 bool hasEyes,
+			 const string& eyeTexName) {
 	// Load meshes
 	meshes.resize(meshNames.size());
 	int i = 0;
@@ -37,9 +39,27 @@ Model::Model(initializer_list<string> meshNames,
 	this->uniformScale = uniformScale;
 	this->translateY = translateY;
 	this->rotateY = rotateY;
+	this->hasEyes = hasEyes;
+	if (hasEyes && !eyeTexName.empty()) {
+		eyeShader.load("eye.vert", "eye.frag");
+		eyeTexture.load(eyeTexName);
+		float s = 42.0f;
+		leftEyeQuad.clear();
+		leftEyeQuad.addVertex(glm::vec3(-s,-s,0));
+		leftEyeQuad.addVertex(glm::vec3( s,-s,0));
+		leftEyeQuad.addVertex(glm::vec3( s, s,0));
+		leftEyeQuad.addVertex(glm::vec3(-s, s,0));
+		leftEyeQuad.addTexCoord(glm::vec2(0,1));
+		leftEyeQuad.addTexCoord(glm::vec2(1,1));
+		leftEyeQuad.addTexCoord(glm::vec2(1,0));
+		leftEyeQuad.addTexCoord(glm::vec2(0,0));
+		leftEyeQuad.addIndex(0); leftEyeQuad.addIndex(1); leftEyeQuad.addIndex(2);
+		leftEyeQuad.addIndex(0); leftEyeQuad.addIndex(2); leftEyeQuad.addIndex(3);
+		rightEyeQuad = leftEyeQuad;
+	}
 }
 
-void Model::draw(ofShader& shader) {
+void Model::draw(ofShader& shader, glm::vec2 eyeRot, float twitchAmt, glm::vec2 microsaccade, float pupilScale) {
 	// Scale and translate the model into position.
 	// Modern OF: use ofRotateDeg() instead of deprecated ofRotateY()
 	ofRotateDeg(rotateY, 0, 1, 0);
@@ -76,10 +96,43 @@ void Model::draw(ofShader& shader) {
 				}
 			}
 			// Every frame: just draw — no data upload.
-			vbos[i].drawElements(GL_TRIANGLES, meshes[i].getNumIndices());
+			if (i == 1) {
+				ofPushMatrix();
+				ofTranslate(0, -70, 0);
+				ofRotateXDeg(jawAngle);
+				ofTranslate(0, 70, 0);
+				vbos[i].drawElements(GL_TRIANGLES, meshes[i].getNumIndices());
+				ofPopMatrix();
+			} else {
+				vbos[i].drawElements(GL_TRIANGLES, meshes[i].getNumIndices());
+			}
 		} else {
-			meshes[i].drawFaces();
+			if (i == 1) {
+				ofPushMatrix();
+				ofTranslate(0, -70, 0);
+				ofRotateXDeg(jawAngle);
+				ofTranslate(0, 70, 0);
+				meshes[i].drawFaces();
+				ofPopMatrix();
+			} else {
+				meshes[i].drawFaces();
+			}
 		}
+	}
+	if (hasEyes) {
+		eyeShader.begin();
+		eyeShader.setUniformTexture("eyeTex", eyeTexture.getTexture(), 0);
+		eyeShader.setUniform1f("pupilScale", pupilScale);
+		eyeShader.setUniform2f("pupilOffset", 0.0f, 0.0f);
+		ofPushMatrix();
+		ofTranslate(-68, 24, 190);
+		leftEyeQuad.draw();
+		ofPopMatrix();
+		ofPushMatrix();
+		ofTranslate(82, 20, 190);
+		rightEyeQuad.draw();
+		ofPopMatrix();
+		eyeShader.end();
 	}
 }
 

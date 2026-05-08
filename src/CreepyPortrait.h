@@ -106,4 +106,31 @@ private:
 	glm::vec2 currentRotation;
 	glm::vec2 targetRotation;
 	glm::vec2 oldRotation;
+	bool jawOpen = false;
+
+	// Phase 3 - Eye system
+	glm::vec2 eyeRotation;
+	glm::vec2 eyeTargetRotation;
+
+	// Pupil dilation
+	float pupilScale = 1.0f;
+	float pupilTargetScale = 1.0f;
+	float dilationTimer = 0.0f;
+	float dilationDuration = 0.0f;
+
+	// Eye twitch
+	float twitchTimer = 0.0f;
+	float twitchAmount = 0.0f;
+	float twitchDuration = 0.0f;
+	bool twitching = false;
+
+	// Eye dart
+	float dartTimer = 0.0f;
+	float dartHoldTimer = 0.0f;
+	glm::vec2 dartOffset;
+	bool darting = false;
+
+	// Microsaccade
+	float microsaccadeTimer = 0.0f;
+	glm::vec2 microsaccadeOffset;
 };

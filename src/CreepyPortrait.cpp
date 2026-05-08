@@ -32,7 +32,9 @@ void CreepyPortrait::setup(){
 								"models/skull_normal_1024.jpg",
 								1.0,	// Don't scale the skull.
 								30.0,	// Move the skull up to center.
-								0.0));	// Don't rotate the skull.
+								0.0,	// Don't rotate the skull.
+								true,	// Has eyes.
+								"eye.png"));
 	}
 	if (model == "jackevil" || model == "all") {
 		models.push_back(Model({"models/jack_evil_mesh_1.ply", "models/jack_evil_mesh_2.ply"},
@@ -91,7 +93,7 @@ void CreepyPortrait::draw(){
 	glm::vec4 lightCameraPosition = camera.getModelViewMatrix() * lightPos;
 	shader.setUniform4f("lightCameraPosition", lightCameraPosition.x, lightCameraPosition.y, lightCameraPosition.z, 1.0f);
 	// Draw the current model.
-	currentModel->draw(shader);
+	currentModel->draw(shader, eyeRotation, twitchAmount, microsaccadeOffset, pupilScale);
 	// Reset all the modified rendering state.
 	shader.end();
 	ofPopMatrix();
@@ -164,6 +166,8 @@ void CreepyPortrait::updateCurrentRotation() {
 			currentRotation = glm::mix(oldRotation, targetRotation, position);
 		}
 	}
+	// Phase 2a: jaw lerp every frame
+	currentModel->jawAngle = ofLerp(currentModel->jawAngle, jawOpen ? 25.0f : 0.0f, 0.12f);
 }
 
 glm::vec2 CreepyPortrait::cameraPointToAngle(const glm::vec2& point) {
@@ -197,6 +201,13 @@ void CreepyPortrait::keyPressed(int key){
 		if (currentModel == end(models)) {
 			currentModel = begin(models);
 		}
+	}
+	else if (key == 'c') {
+		targetRotation = glm::vec2(0, 0);
+		currentRotation = glm::vec2(0, 0);
+	}
+	else if (key == 'j') {
+		jawOpen = !jawOpen;
 	}
 }
 

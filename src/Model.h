@@ -18,9 +18,12 @@ public:
 		  const std::string& normalName,
 		  float uniformScale,
 		  float translateY,
-		  float rotateY);
-	void draw(ofShader& shader);
+		  float rotateY,
+		  bool hasEyes = false,
+		  const std::string& eyeTexName = "");
+	void draw(ofShader& shader, glm::vec2 eyeRot = glm::vec2(0,0), float twitchAmt = 0.0f, glm::vec2 microsaccade = glm::vec2(0,0), float pupilScale = 1.0f);
 	static bool useNormalMapping;
+	float jawAngle = 0.0f;
 	
 private:
 	static std::vector<float> generateTangents(ofMesh& mesh);
@@ -28,6 +31,11 @@ private:
 	float uniformScale;
 	float translateY;
 	float rotateY;
+	bool hasEyes = false;
+	ofShader eyeShader;
+	ofImage eyeTexture;
+	ofMesh leftEyeQuad;
+	ofMesh rightEyeQuad;
 	ofImage diffuse;
 	ofImage specular;
 	ofImage ambient;
