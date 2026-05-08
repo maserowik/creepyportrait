@@ -106,7 +106,12 @@ private:
 	glm::vec2 currentRotation;
 	glm::vec2 targetRotation;
 	glm::vec2 oldRotation;
-	bool jawOpen = false;
+	// Phase 6 - Audio
+	enum AudioState { AUDIO_IDLE, AUDIO_TRIGGERED, AUDIO_PLAYING };
+	AudioState audioState = AUDIO_IDLE;
+	ofSoundPlayer soundPlayer;
+	float smoothAmplitude = 0.0f;
+	std::vector<std::string> audioClips;
 
 	// Phase 3 - Eye system
 	glm::vec2 eyeRotation;

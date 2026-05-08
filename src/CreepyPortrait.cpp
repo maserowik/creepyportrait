@@ -59,6 +59,12 @@ void CreepyPortrait::setup(){
 	currentModel = begin(models);
 	// Prime the time delta for the first update loop run.
 	lastUpdate = ofGetElapsedTimef();
+	// Phase 6 - Audio setup
+	audioClips.push_back("audio/Test_Clip.wav");
+	// Add more clips here: audioClips.push_back("audio/growl.wav");
+	soundPlayer.load(audioClips[0]);
+	soundPlayer.setLoop(false);
+	soundPlayer.setVolume(1.0f);
 }
 
 //--------------------------------------------------------------
@@ -166,8 +172,38 @@ void CreepyPortrait::updateCurrentRotation() {
 			currentRotation = glm::mix(oldRotation, targetRotation, position);
 		}
 	}
-	// Phase 2a: jaw lerp every frame
-	currentModel->jawAngle = ofLerp(currentModel->jawAngle, jawOpen ? 25.0f : 0.0f, 0.12f);
+	// Phase 6 - Audio state machine
+	bool faceNow = detector.isFaceDetected();
+	if (faceNow && audioState == AUDIO_IDLE) {
+		// Face appeared - pick random clip and play
+		int idx = (int)ofRandom(audioClips.size());
+		soundPlayer.load(audioClips[idx]);
+		soundPlayer.play();
+		audioState = AUDIO_TRIGGERED;
+	} else if (!faceNow && audioState != AUDIO_IDLE) {
+		// Face lost - stop audio
+		soundPlayer.stop();
+		audioState = AUDIO_IDLE;
+	} else if (audioState == AUDIO_TRIGGERED && soundPlayer.isPlaying()) {
+		audioState = AUDIO_PLAYING;
+	} else if (audioState == AUDIO_PLAYING && !soundPlayer.isPlaying()) {
+		// Clip finished - idle until next face detection cycle
+		audioState = AUDIO_IDLE;
+	}
+	// Phase 6 - Jaw driven by spectrum amplitude
+	ofSoundUpdate();
+	float rawAmplitude = 0.0f;
+	if (audioState == AUDIO_PLAYING) {
+		int nBands = 64;
+		float* spectrum = ofSoundGetSpectrum(nBands);
+		if (spectrum != nullptr) {
+			for (int i = 0; i < nBands; i++) rawAmplitude += spectrum[i];
+			rawAmplitude /= nBands;
+		}
+	}
+	smoothAmplitude = ofLerp(smoothAmplitude, rawAmplitude, 0.3f);
+	float targetJaw = ofMap(smoothAmplitude, 0.0f, 0.08f, 0.0f, 25.0f, true);
+	currentModel->jawAngle = ofLerp(currentModel->jawAngle, targetJaw, 0.2f);
 }
 
 glm::vec2 CreepyPortrait::cameraPointToAngle(const glm::vec2& point) {
@@ -207,7 +243,14 @@ void CreepyPortrait::keyPressed(int key){
 		currentRotation = glm::vec2(0, 0);
 	}
 	else if (key == 'j') {
-		jawOpen = !jawOpen;
+		// Phase 6 - manual audio test trigger
+		if (soundPlayer.isPlaying()) {
+			soundPlayer.stop();
+			audioState = AUDIO_IDLE;
+		} else {
+			soundPlayer.play();
+			audioState = AUDIO_PLAYING;
+		}
 	}
 }
 
