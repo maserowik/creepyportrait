@@ -67,6 +67,7 @@ public:
 
 	// True/false if the skull should just rotate around the Y axis.
 	bool 		rotateSkull = false;
+	bool 		jawOpen = false;       // Phase 2a: j key jaw toggle
 
 	// Velocity of the rotating skull in degrees/second.
 	float 		rotateSkullVelocity = 5.0;

@@ -164,6 +164,8 @@ void CreepyPortrait::updateCurrentRotation() {
 			currentRotation = glm::mix(oldRotation, targetRotation, position);
 		}
 	}
+	// Phase 2a: jaw lerp every frame
+	currentModel->jawAngle = ofLerp(currentModel->jawAngle, jawOpen ? 25.0f : 0.0f, 0.12f);
 }
 
 glm::vec2 CreepyPortrait::cameraPointToAngle(const glm::vec2& point) {
@@ -197,6 +199,9 @@ void CreepyPortrait::keyPressed(int key){
 		if (currentModel == end(models)) {
 			currentModel = begin(models);
 		}
+	}
+	else if (key == 'j') {
+		jawOpen = !jawOpen;
 	}
 }
 

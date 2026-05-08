@@ -38,7 +38,7 @@ void main(){
 	float gaussian = exp(exponent);
 	gaussian = lambert != 0.0 ? gaussian : 0.0;
 
-	fragColor = lightAmbient * materialAmbient +
+	fragColor = lightAmbient * materialAmbient + vec4(0.35, 0.28, 0.25, 0.0) +
 				lightDiffuse * materialDiffuse * lambert +
 				lightSpecular * materialSpecular * gaussian;
 }

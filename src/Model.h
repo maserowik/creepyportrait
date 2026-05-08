@@ -21,6 +21,7 @@ public:
 		  float rotateY);
 	void draw(ofShader& shader);
 	static bool useNormalMapping;
+	float jawAngle = 0.0f;
 	
 private:
 	static std::vector<float> generateTangents(ofMesh& mesh);

@@ -76,9 +76,27 @@ void Model::draw(ofShader& shader) {
 				}
 			}
 			// Every frame: just draw — no data upload.
-			vbos[i].drawElements(GL_TRIANGLES, meshes[i].getNumIndices());
+			if (i == 1) {
+				ofPushMatrix();
+				ofTranslate(0, -70, 0);
+				ofRotateXDeg(jawAngle);
+				ofTranslate(0, 70, 0);
+				vbos[i].drawElements(GL_TRIANGLES, meshes[i].getNumIndices());
+				ofPopMatrix();
+			} else {
+				vbos[i].drawElements(GL_TRIANGLES, meshes[i].getNumIndices());
+			}
 		} else {
-			meshes[i].drawFaces();
+			if (i == 1) {
+				ofPushMatrix();
+				ofTranslate(0, -70, 0);
+				ofRotateXDeg(jawAngle);
+				ofTranslate(0, 70, 0);
+				meshes[i].drawFaces();
+				ofPopMatrix();
+			} else {
+				meshes[i].drawFaces();
+			}
 		}
 	}
 }
