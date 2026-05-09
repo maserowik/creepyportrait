@@ -153,7 +153,7 @@ void CreepyPortrait::updateCurrentRotation() {
 				// Rotate head left-right around y axis
 				targetRotation.y = angle.x;
 			}
-			else if ((time - faceLastSeen) > noFaceResetSeconds) {
+			else if ((time - faceLastSeen) > noFaceResetSeconds && (time - faceLastSeen) <= noFaceWanderSeconds) {
 				// Lost the face, go back to center.
 				oldRotation = targetRotation;
 				targetRotation.x = 0;
@@ -166,11 +166,16 @@ void CreepyPortrait::updateCurrentRotation() {
 		}
 		// Animate moving from old to target skull rotation in the time it takes to wait for
 		// the next face detection.
-		else if (targetRotation != currentRotation) {
+		else if (targetRotation != currentRotation && (time - faceLastSeen) <= noFaceWanderSeconds) {
 			float position = ofClamp((time - faceLastUpdate)/faceUpdateDelay, 0, 1);
 			// Modern OF: use glm::mix() instead of deprecated ofVec2f::getInterpolated()
 			currentRotation = glm::mix(oldRotation, targetRotation, position);
 		}
+	}
+	// Phase 7 - Idle wander when no face for noFaceWanderSeconds
+	if (!rotateSkull && (time - faceLastSeen) > noFaceWanderSeconds) {
+		currentRotation.x = sin(time * 0.37f + 1.3f) * 28.0f + sin(time * 0.13f + 0.7f) * 12.0f;
+		currentRotation.y = sin(time * 0.29f + 2.1f) * 40.0f + sin(time * 0.07f + 1.5f) * 20.0f;
 	}
 	// Phase 6 - Audio state machine
 	bool faceNow = detector.isFaceDetected();
@@ -241,6 +246,7 @@ void CreepyPortrait::keyPressed(int key){
 	else if (key == 'c') {
 		targetRotation = glm::vec2(0, 0);
 		currentRotation = glm::vec2(0, 0);
+		faceLastSeen = ofGetElapsedTimef(); // Phase 7 - exit wander mode
 	}
 	else if (key == 'j') {
 		// Phase 6 - manual audio test trigger

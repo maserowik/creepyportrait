@@ -47,6 +47,7 @@ void configureApp(int videoDeviceId, bool usePiCamera, const string& model, Cree
 	app->faceUpdateDelay = 0.5;
 	app->model = model;
 	app->noFaceResetSeconds = 6.0;
+	app->noFaceWanderSeconds = 600.0f; // 10 minutes
 	app->faceDepth = 20.0;
 	app->skullFragmentShader = "lighting_es.frag";
 	app->skullVertexShader = "lighting_es.vert";

@@ -61,6 +61,8 @@ public:
 
 	// How long to wait for no detected face before the skull rotates back to 0.
 	float 		noFaceResetSeconds;
+	// How long to wait before idle wander begins (Phase 7).
+	float 		noFaceWanderSeconds = 600.0f;
 
 	// True/false to render the skull (true) or evil jacklantern (false).
 	bool 		renderSkullMode = true;
