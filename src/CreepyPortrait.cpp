@@ -183,6 +183,11 @@ void CreepyPortrait::updateCurrentRotation() {
 		currentRotation.x = sin(time * 0.37f + 1.3f) * 28.0f + sin(time * 0.13f + 0.7f) * 12.0f;
 		currentRotation.y = sin(time * 0.29f + 2.1f) * 40.0f + sin(time * 0.07f + 1.5f) * 20.0f;
 	}
+	// Phase 7 - Eye pulsate
+	if (eyeAnimEnabled) {
+		pupilScale = 0.9f + sin(time * 1.8f) * 0.1f;
+	}
+
 	// j key - jaw toggle independent of audio (only when sound not playing)
 	if (!soundPlayer.isPlaying()) {
 		if (jawOpen) currentModel->jawAngle = ofLerp(currentModel->jawAngle, 25.0f, 0.12f);
@@ -264,6 +269,14 @@ void CreepyPortrait::keyPressed(int key){
 	else if (key == 's') {
 		// s key - play sound only, no jaw
 		soundPlayer.play();
+	}
+	else if (key == 'w') {
+		// w key - force wander mode immediately
+		faceLastSeen = -99999.0f;
+	}
+	else if (key == 'e') {
+		// e key - toggle eye animation on/off
+		eyeAnimEnabled = !eyeAnimEnabled;
 	}
 }
 

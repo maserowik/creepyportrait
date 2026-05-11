@@ -109,6 +109,7 @@ private:
 	glm::vec2 targetRotation;
 	glm::vec2 oldRotation;
 	bool jawOpen = false;
+	bool eyeAnimEnabled = true;
 	// Phase 6 - Audio
 	enum AudioState { AUDIO_IDLE, AUDIO_TRIGGERED, AUDIO_PLAYING };
 	AudioState audioState = AUDIO_IDLE;
