@@ -98,7 +98,7 @@ int main(int argc, char* argv[]){
 	cout << "Creepy Portrait v1.0" << endl;
 	cout << "Copyright 2013 Tony DiCola (tony@tonydicola.com)" << endl;
 	cout << "Homepage: https://github.com/tdicola/creepyportrait" << endl << endl;
-	ofSetLogLevel(OF_LOG_WARNING);
+	ofSetLogLevel(OF_LOG_VERBOSE);
 	// Parse video device parameter
 	if (argc < 2) {
 		cout << "ERROR: Must specify either a video device ID or pi as a command line parameter!" << endl << endl;

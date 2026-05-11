@@ -140,6 +140,12 @@ void CreepyPortrait::updateCurrentRotation() {
 			detector.updateFrame(video->getPixels());
 			// Update target skull rotation
 			if (detector.isFaceDetected()) {
+				// Phase 6 - snap to center instantly if returning from wander
+				if ((time - faceLastSeen) > noFaceWanderSeconds) {
+					currentRotation = glm::vec2(0, 0);
+					targetRotation = glm::vec2(0, 0);
+					oldRotation = glm::vec2(0, 0);
+				}
 				faceLastSeen = time;
 				auto currentFace = detector.getDetectedFace();
 				// Use glm::vec2 for position math
@@ -177,12 +183,15 @@ void CreepyPortrait::updateCurrentRotation() {
 		currentRotation.x = sin(time * 0.37f + 1.3f) * 28.0f + sin(time * 0.13f + 0.7f) * 12.0f;
 		currentRotation.y = sin(time * 0.29f + 2.1f) * 40.0f + sin(time * 0.07f + 1.5f) * 20.0f;
 	}
+	// j key - jaw toggle independent of audio (only when sound not playing)
+	if (!soundPlayer.isPlaying()) {
+		if (jawOpen) currentModel->jawAngle = ofLerp(currentModel->jawAngle, 25.0f, 0.12f);
+		else currentModel->jawAngle = ofLerp(currentModel->jawAngle, 0.0f, 0.12f);
+	}
 	// Phase 6 - Audio state machine
 	bool faceNow = detector.isFaceDetected();
 	if (faceNow && audioState == AUDIO_IDLE) {
-		// Face appeared - pick random clip and play
-		int idx = (int)ofRandom(audioClips.size());
-		soundPlayer.load(audioClips[idx]);
+		// Face appeared - play clip (loaded once at setup)
 		soundPlayer.play();
 		audioState = AUDIO_TRIGGERED;
 	} else if (!faceNow && audioState != AUDIO_IDLE) {
@@ -198,7 +207,7 @@ void CreepyPortrait::updateCurrentRotation() {
 	// Phase 6 - Jaw driven by spectrum amplitude
 	ofSoundUpdate();
 	float rawAmplitude = 0.0f;
-	if (audioState == AUDIO_PLAYING) {
+	if (soundPlayer.isPlaying()) {
 		int nBands = 64;
 		float* spectrum = ofSoundGetSpectrum(nBands);
 		if (spectrum != nullptr) {
@@ -206,9 +215,9 @@ void CreepyPortrait::updateCurrentRotation() {
 			rawAmplitude /= nBands;
 		}
 	}
-	smoothAmplitude = ofLerp(smoothAmplitude, rawAmplitude, 0.3f);
-	float targetJaw = ofMap(smoothAmplitude, 0.0f, 0.08f, 0.0f, 25.0f, true);
-	currentModel->jawAngle = ofLerp(currentModel->jawAngle, targetJaw, 0.2f);
+	smoothAmplitude = ofLerp(smoothAmplitude, rawAmplitude, 0.15f);
+	float targetJaw = ofMap(smoothAmplitude, 0.0f, 0.03f, 0.0f, 25.0f, true);
+	currentModel->jawAngle = ofLerp(currentModel->jawAngle, targetJaw, 0.08f);
 }
 
 glm::vec2 CreepyPortrait::cameraPointToAngle(const glm::vec2& point) {
@@ -249,14 +258,12 @@ void CreepyPortrait::keyPressed(int key){
 		faceLastSeen = ofGetElapsedTimef(); // Phase 7 - exit wander mode
 	}
 	else if (key == 'j') {
-		// Phase 6 - manual audio test trigger
-		if (soundPlayer.isPlaying()) {
-			soundPlayer.stop();
-			audioState = AUDIO_IDLE;
-		} else {
-			soundPlayer.play();
-			audioState = AUDIO_PLAYING;
-		}
+		// j key - toggle jaw open/closed only, no audio
+		jawOpen = !jawOpen;
+	}
+	else if (key == 's') {
+		// s key - play sound only, no jaw
+		soundPlayer.play();
 	}
 }
 
