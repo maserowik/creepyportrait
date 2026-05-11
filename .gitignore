@@ -28,3 +28,4 @@ creepy_portrait_simulator*.html
 
 # One-time patch scripts — not needed after fixes are in the repo
 fix_main.sh
+*.py
