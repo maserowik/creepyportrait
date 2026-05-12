@@ -124,7 +124,7 @@ void Model::draw(ofShader& shader, glm::vec2 eyeRot, float twitchAmt, glm::vec2 
 		eyeShader.setUniformTexture("eyeTex", eyeTexture.getTexture(), 0);
 		eyeShader.setUniform1f("pupilScale", pupilScale);
 		eyeShader.setUniform1f("blinkProgress", twitchAmt);
-		eyeShader.setUniform2f("pupilOffset", 0.0f, 0.0f);
+		eyeShader.setUniform2f("pupilOffset", microsaccade.x, microsaccade.y);
 		ofPushMatrix();
 		ofTranslate(-68, 24, 190);
 		leftEyeQuad.draw();

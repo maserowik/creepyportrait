@@ -69,6 +69,8 @@ void CreepyPortrait::setup(){
 	dilationTimer = ofRandom(2.0f, 8.0f);
 	// Phase 7 - Seed microsaccade timer
 	microsaccadeTimer = ofRandom(0.5f, 2.0f);
+	// Phase 7 - Seed dart timer
+	dartTimer = 3.0f;
 }
 
 //--------------------------------------------------------------
@@ -223,6 +225,25 @@ void CreepyPortrait::updateCurrentRotation() {
 			microsaccadeTimer = ofRandom(0.5f, 2.0f);
 		}
 		microsaccadeOffset = glm::mix(microsaccadeOffset, glm::vec2(0.0f, 0.0f), 0.03f);
+		// Dart - quick snap to random position, hold, return
+		dartTimer -= delta;
+		if (dartTimer <= 0.0f && !darting) {
+			dartOffset = glm::vec2(ofRandom(-0.08f, 0.08f), ofRandom(-0.08f, 0.08f));
+			darting = true;
+			dartHoldTimer = ofRandom(0.3f, 0.7f);
+			dartTimer = 3.0f;
+		}
+		if (darting) {
+			dartHoldTimer -= delta;
+			if (dartHoldTimer <= 0.0f) {
+				darting = false;
+			}
+		} else {
+			dartOffset = glm::mix(dartOffset, glm::vec2(0.0f, 0.0f), 0.1f);
+		}
+		// Combine microsaccade and dart into final offset
+		glm::vec2 finalOffset = microsaccadeOffset + dartOffset;
+		microsaccadeOffset = glm::clamp(finalOffset, glm::vec2(-0.05f, -0.05f), glm::vec2(0.05f, 0.05f));
 	}
 
 	// j key - jaw toggle independent of audio (only when sound not playing)
