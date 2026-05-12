@@ -67,6 +67,8 @@ void CreepyPortrait::setup(){
 	soundPlayer.setVolume(1.0f);
 	// Phase 7 - Seed blink timer
 	dilationTimer = ofRandom(2.0f, 8.0f);
+	// Phase 7 - Seed microsaccade timer
+	microsaccadeTimer = ofRandom(0.5f, 2.0f);
 }
 
 //--------------------------------------------------------------
@@ -188,7 +190,7 @@ void CreepyPortrait::updateCurrentRotation() {
 	// Phase 7 - Eye pulsate + blink
 	if (eyeAnimEnabled) {
 		// Pulsate
-		pupilScale = 0.9f + sin(time * 1.8f) * 0.1f;
+		pupilScale = 1.4f + sin(time * 1.8f) * 0.08f;
 		// Blink - three phases: close, hold, open
 		dilationTimer -= delta;
 		if (dilationTimer <= 0.0f && !twitching) {
@@ -213,6 +215,14 @@ void CreepyPortrait::updateCurrentRotation() {
 				twitchAmount = 0.0f;
 			}
 		}
+		// Microsaccade - tiny random UV jitter
+		microsaccadeTimer -= delta;
+		if (microsaccadeTimer <= 0.0f) {
+			microsaccadeOffset += glm::vec2(ofRandom(-0.015f, 0.015f), ofRandom(-0.015f, 0.015f));
+			microsaccadeOffset = glm::clamp(microsaccadeOffset, glm::vec2(-0.02f, -0.02f), glm::vec2(0.02f, 0.02f));
+			microsaccadeTimer = ofRandom(0.5f, 2.0f);
+		}
+		microsaccadeOffset = glm::mix(microsaccadeOffset, glm::vec2(0.0f, 0.0f), 0.03f);
 	}
 
 	// j key - jaw toggle independent of audio (only when sound not playing)
