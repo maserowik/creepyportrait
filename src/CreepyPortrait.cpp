@@ -94,6 +94,8 @@ void CreepyPortrait::draw(){
 	camera.begin();
 	// Save transformation state
 	ofPushMatrix();
+	// Phase 8 - Float Drift
+	ofTranslate(wanderDrift.x, wanderDrift.y, 0);
 	// Rotate model - modern OF uses ofRotateDeg() instead of deprecated ofRotateX/Y()
 	ofRotateDeg(currentRotation.x, 1, 0, 0);
 	ofRotateDeg(currentRotation.y, 0, 1, 0);
@@ -188,6 +190,12 @@ void CreepyPortrait::updateCurrentRotation() {
 	if (!rotateSkull && (time - faceLastSeen) > noFaceWanderSeconds) {
 		currentRotation.x = sin(time * 0.37f + 1.3f) * 28.0f + sin(time * 0.13f + 0.7f) * 12.0f;
 		currentRotation.y = sin(time * 0.29f + 2.1f) * 40.0f + sin(time * 0.07f + 1.5f) * 20.0f;
+		// Phase 8 - Float Drift during wander
+		wanderDrift.x = sin(time * 0.11f + 0.5f) * 180.0f + sin(time * 0.07f + 1.2f) * 80.0f;
+		wanderDrift.y = sin(time * 0.09f + 2.3f) * 100.0f + sin(time * 0.05f + 0.8f) * 50.0f;
+	} else {
+		// Phase 8 - Lerp drift back to center when face present
+		wanderDrift = glm::mix(wanderDrift, glm::vec2(0.0f, 0.0f), 0.05f);
 	}
 	// Phase 7 - Eye pulsate + blink
 	if (eyeAnimEnabled) {

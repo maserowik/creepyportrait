@@ -63,6 +63,8 @@ public:
 	float 		noFaceResetSeconds;
 	// How long to wait before idle wander begins (Phase 7).
 	float 		noFaceWanderSeconds = 600.0f;
+	// Phase 8 - Float Drift
+	glm::vec2	wanderDrift;
 
 	// True/false to render the skull (true) or evil jacklantern (false).
 	bool 		renderSkullMode = true;
