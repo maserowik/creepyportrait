@@ -1,117 +1,148 @@
-# Creepy Portrait — Complete Raspberry Pi 4 / Pi 5 Install Guide
+# Creepy Portrait — Complete Setup Guide for Raspberry Pi 4 and Pi 5
 
-**What you'll end up with:** A Raspberry Pi 4 or Pi 5 that boots into a fullscreen
-face-tracking 3D portrait. Point a USB webcam at anyone and the skull (or
-jack-o-lantern) slowly turns to follow them.
+**What you will end up with:** A Raspberry Pi that boots up and shows a fullscreen 3D skull on your monitor. Point a USB webcam at anyone walking past and the skull slowly turns its head to follow them. When nobody is around it wanders on its own. The eyes blink and move. It is genuinely unsettling.
 
-> **Supported hardware: Raspberry Pi 4 and Pi 5 only.**
-> Pi 3B, Pi Zero 2W, and all earlier models will not work — their GPU lacks
-> the desktop OpenGL support required. Do not attempt the install on those boards.
+**No programming experience needed.** Every command is written out exactly as you need to type it. When this guide says "type this" it means type it exactly — every letter, every symbol, every space matters.
 
-**Time required:** About 2–3 hours, most of it unattended while things compile.
+**How long it takes:** About 2 to 3 hours, but most of that time the Pi is doing work on its own while you wait. You are not sitting at a keyboard the whole time.
 
-**Tested on:** Raspberry Pi OS Trixie 64-bit (released April 2026), Pi 4 4GB.
+**Tested on:** Raspberry Pi 4 with 4GB RAM, Raspberry Pi OS Trixie 64-bit (April 2026).
 
 ---
 
-## What You Need Before You Start
+## Before You Start — What You Need
 
-| Item | Notes |
-|------|-------|
-| Raspberry Pi 4 or Pi 5 | Pi 4: 2GB minimum, 4GB recommended. Pi 5: any RAM size. |
-| MicroSD card | 16GB minimum, Class 10 / A1 or better |
-| USB webcam | Logitech C170 works for testing. C270 or C920 recommended for wall mount. |
-| HDMI monitor + cable | Pi 4 and Pi 5 use micro-HDMI — you may need an adapter |
-| USB keyboard | Just for setup |
-| Power supply | Official USB-C: 5V/3A for Pi 4, 5V/5A for Pi 5. No phone chargers. |
-| Second computer | Windows, Mac, or Linux — only used to flash the SD card |
-| Internet connection | Wired ethernet recommended during install |
+Read this whole section before buying anything.
 
-> **Critical:** Always run commands from a terminal on the Pi's physical desktop
-> or inside a VNC desktop window. A plain SSH session has no display and the
-> app will crash with `X11: Platform not initialized`.
+**The computer (Raspberry Pi):**
+You need a Raspberry Pi 4 or Pi 5. The Pi 4 with 4GB of RAM is the recommended choice — it is widely available secondhand for around $35–50. The Pi 5 is faster but more expensive. Pi 3, Pi Zero, and anything older will not work — the graphics hardware inside them is the wrong type.
+
+**The memory card (MicroSD):**
+This is like the hard drive for the Pi. Get a 16GB or larger card. Look for "Class 10" or "A1" on the packaging — this tells you it is fast enough. SanDisk and Samsung brands are reliable. Avoid no-name cheap cards.
+
+**The camera (USB webcam):**
+The Logitech C270 is the recommended choice — it is inexpensive, widely available, and works reliably. The C920 is better for a permanent installation because it handles low light better and has a wider field of view. Avoid very cheap no-name webcams — many have compatibility problems.
+
+**The screen (HDMI monitor):**
+Any monitor or TV with an HDMI input works. The Pi 4 and Pi 5 use a smaller connector called Micro-HDMI — you will need either a Micro-HDMI to HDMI cable or an adapter. These cost a few dollars and are available anywhere.
+
+**The power supply:**
+Do not use a phone charger. You need the official Raspberry Pi power supply. For Pi 4 it is 5V/3A USB-C. Using the wrong power supply causes random crashes and corrupted memory cards.
+
+**A second computer:**
+You need a Windows PC or Mac to prepare the memory card. You only use it once at the beginning. Any computer that has a card reader or a USB card reader dongle will work.
+
+**Internet connection:**
+Connect the Pi to your router with an ethernet cable during setup. Wi-Fi works but is slower and less reliable for a big download.
 
 ---
 
-## Part 1 — Flash the SD Card
+## Part 1 — Prepare the Memory Card
 
-Do this on your second computer, not the Pi.
+Do this on your Windows PC or Mac, not on the Pi.
 
-**1.1** Download and install **Raspberry Pi Imager**:
+**Step 1.1 — Download Raspberry Pi Imager**
+
+Go to this address in your web browser and download the Imager for your computer:
 ```
 https://www.raspberrypi.com/software/
 ```
+Install it like any normal program.
 
-**1.2** Insert your microSD card into your computer's card reader.
+**Step 1.2 — Insert the memory card**
 
-**1.3** Open Raspberry Pi Imager and make these selections:
+Put your MicroSD card into your computer's card reader. If your computer does not have one built in, use a USB card reader dongle — they cost about $5.
 
-- **Raspberry Pi Device** → match your board (`Raspberry Pi 4` or `Raspberry Pi 5`)
-- **Operating System** → `Raspberry Pi OS (other)` → **`Raspberry Pi OS Full (64-bit)`**
-  - Must be **Full** — it includes the desktop environment the skull needs.
-  - Do NOT pick Lite — no display server means no skull.
-- **Storage** → select your microSD card
+**Step 1.3 — Open Raspberry Pi Imager and choose your settings**
 
-**1.4** Click the gear icon (or "Edit Settings") and configure:
+Open the Raspberry Pi Imager program. You will see three boxes to fill in:
 
-- Hostname: `creepyportrait`
-- Enable SSH: yes
-- Username and password: set and remember these
-- WiFi: configure if not using ethernet
+First box — **Raspberry Pi Device:** Click it and choose `Raspberry Pi 4` or `Raspberry Pi 5` to match what you have.
 
-**1.5** Click **Save** then **Write**. Wait for it to finish and verify. Eject safely.
+Second box — **Operating System:** Click it, then choose `Raspberry Pi OS (other)`, then choose **`Raspberry Pi OS Full (64-bit)`**. It must say Full — the version without Full does not include the graphical desktop that the skull needs to run.
+
+Third box — **Storage:** Click it and choose your MicroSD card from the list.
+
+**Step 1.4 — Configure your settings**
+
+Click the button that says "Edit Settings" or looks like a gear icon. Fill in:
+- Hostname: type `creepyportrait`
+- Enable SSH: tick the box (this lets you control the Pi remotely if needed)
+- Username: choose a username, for example `creepyportrait`
+- Password: choose a password and write it down
+- Wi-Fi: if you are not using an ethernet cable, enter your Wi-Fi name and password here
+
+Click Save.
+
+**Step 1.5 — Write the card**
+
+Click Write. It will warn you that everything on the card will be erased — click Yes. Wait for it to finish writing and then verify. When it says complete, eject the card safely and remove it.
 
 ---
 
-## Part 2 — First Boot and Critical X11 Switch
+## Part 2 — First Boot and Important Display Setting
 
-**2.1** Insert SD card into Pi. Connect monitor, keyboard, ethernet. Plug in power last.
+**Step 2.1 — Connect everything to the Pi**
 
-**2.2** Wait for the desktop to appear. Complete the first-run wizard:
-- Set country/language/timezone
-- Change password if prompted
-- Connect WiFi if not using ethernet
-- Skip software update for now
+Connect in this order:
+1. Insert the MicroSD card into the slot on the Pi
+2. Connect your monitor with the Micro-HDMI cable
+3. Connect your USB keyboard
+4. Connect your ethernet cable to your router
+5. Plug in the power supply last
 
-**2.3** Open a terminal (`Ctrl+Alt+T` or taskbar).
+The Pi will start booting automatically when you plug in the power.
 
-**2.4** Switch from Wayland to X11. This step is **required** — new Pi OS defaults
-to Wayland which is not compatible with openFrameworks/GLFW:
+**Step 2.2 — Complete the first-run setup**
 
+Wait for the desktop to appear — it may take a minute or two. You will see a setup wizard. Go through it:
+- Set your country, language, and timezone
+- Change your password if prompted
+- Connect to Wi-Fi if you are not using ethernet
+- When it asks about software updates, skip for now
+
+**Step 2.3 — Open a Terminal**
+
+A terminal is a window where you type commands. To open one, look at the taskbar at the top of the screen and find an icon that looks like a black rectangle, or press `Ctrl+Alt+T` on your keyboard.
+
+When the terminal opens you will see a blinking cursor. This is where you will type all the commands in this guide. Type them exactly as written, then press Enter to run them.
+
+**Step 2.4 — Switch to X11 display mode**
+
+This is a required step. The Pi's new operating system uses a display system called Wayland by default, but the skull program needs an older system called X11. You need to switch it.
+
+Type this command and press Enter:
 ```bash
 sudo raspi-config
 ```
 
-Navigate to: **Advanced Options → Wayland → X11**
+It will ask for your password — type it and press Enter. A blue menu will appear. Use the arrow keys on your keyboard to navigate.
 
-Confirm, then reboot:
+Go to: **Advanced Options** → press Enter → **Wayland** → press Enter → **X11** → press Enter
 
-```bash
-sudo reboot
-```
+Press the right arrow key to highlight OK and press Enter. When it asks to reboot, choose Yes.
 
-**2.5** After reboot, verify X11 is active:
+**Step 2.5 — Confirm X11 is working**
 
+After the Pi reboots, open a terminal again and type:
 ```bash
 echo $XDG_SESSION_TYPE
 ```
 
-Must show `x11`. If it still shows `wayland`, repeat the raspi-config step above.
+The screen must show `x11`. If it shows `wayland` you need to repeat step 2.4.
 
-> **Why this matters:** Skipping this step causes the skull to crash immediately
-> with `Failed to detect any supported platform` or `GLXBadFBConfig`. X11 is
-> required — there is no workaround.
+> **Why this matters:** If you skip this step the skull program will crash immediately with an error message. X11 is required and there is no other way around it.
 
 ---
 
-## Part 3 — System Update
+## Part 3 — Update the System
 
+Type this command and press Enter:
 ```bash
 sudo apt update && sudo apt upgrade -y
 ```
 
-Takes 5–15 minutes. Let it finish completely, then reboot:
-
+This updates all the software on the Pi to the latest versions. It will take between 5 and 15 minutes. Let it finish completely. When it is done, reboot:
 ```bash
 sudo reboot
 ```
@@ -120,8 +151,11 @@ sudo reboot
 
 ## Part 4 — Install openFrameworks
 
-**4.1** Download and extract openFrameworks:
+openFrameworks is the graphics and media toolkit that the skull program is built on. You need to install it before you can build the skull.
 
+**Step 4.1 — Download openFrameworks**
+
+Type each of these commands one at a time, pressing Enter after each one:
 ```bash
 cd ~
 wget https://github.com/openframeworks/openFrameworks/releases/download/0.12.0/of_v0.12.0_linuxaarch64_release.tar.gz
@@ -130,21 +164,23 @@ rm of_v0.12.0_linuxaarch64_release.tar.gz
 mv of_v0.12.0_linuxaarch64_release openFrameworks
 ```
 
-**4.2** Run the OF dependency script:
+The download is large and may take several minutes depending on your internet speed.
 
+**Step 4.2 — Install dependencies**
+
+Dependencies are other software packages that openFrameworks needs to work. Run this script:
 ```bash
 cd ~/openFrameworks/scripts/linux/debian
 sudo ./install_dependencies.sh
 ```
 
-> **Expected warning — safe to ignore:**
+> **You will see this warning — it is safe to ignore:**
 > `E: Unable to locate package libgconf-2-4`
-> This package was removed from Debian Trixie. openFrameworks does not actually
-> need it. The script still installs everything else correctly. Continue.
+> This package no longer exists in the current version of the operating system. The script installs everything else correctly. Keep going.
 
-**4.3** Install the additional packages that the OF script misses on Trixie.
-Copy and paste this entire block as one command:
+**Step 4.3 — Install additional packages**
 
+Copy and paste this entire block into the terminal at once, then press Enter:
 ```bash
 sudo apt install -y \
   libcairo2-dev \
@@ -174,10 +210,11 @@ sudo apt install -y \
   mesa-utils
 ```
 
-Takes 5–10 minutes. All packages should install without errors.
+This takes 5 to 10 minutes. Everything should install without errors.
 
-**4.4** Verify the key libraries installed correctly:
+**Step 4.4 — Verify the installation**
 
+Run each of these commands. Each one should print a version number:
 ```bash
 pkg-config --modversion cairo
 pkg-config --modversion sndfile
@@ -186,49 +223,42 @@ pkg-config --modversion libcurl
 pkg-config --modversion opencv4
 ```
 
-Each should print a version number. If any shows nothing, re-run the
-`apt install` block from step 4.3.
+If any of them shows nothing, go back and run the install block from step 4.3 again.
 
 ---
 
-## Part 5 — Compile openFrameworks
+## Part 5 — Build openFrameworks
 
-This is the long step. **Pi 4: 30–60 minutes. Pi 5: ~20 minutes.**
-Start it and walk away.
+This is the longest step. On a Pi 4 it takes 30 to 60 minutes. On a Pi 5 about 20 minutes. Start it and go do something else.
 
 ```bash
 cd ~/openFrameworks/libs/openFrameworksCompiled/project
 make -j$(nproc) Release
 ```
 
-**Watch progress in a second terminal window:**
-
+If you want to watch the progress, open a second terminal window and type:
 ```bash
 watch -n 3 'echo "Compiled: $(find ~/openFrameworks/libs/openFrameworksCompiled/lib/linuxaarch64/obj/Release -name "*.o" | wc -l) files" && ls ~/openFrameworks/libs/openFrameworksCompiled/lib/linuxaarch64/libopenFrameworks.a 2>/dev/null && echo "DONE!" || echo "Still building..."'
 ```
 
-You are done when you see `DONE!` and the main terminal shows:
-```
-make[1]: Leaving directory
-```
-with no red error lines.
+You are done when you see `DONE!` and the original terminal shows `make[1]: Leaving directory` with no red error lines.
 
-**5.1** Run the spinning shapes test to confirm everything works.
-Must be run from a terminal on the Pi desktop — not SSH:
+**Step 5.1 — Test that it worked**
 
+This test must be run from a terminal on the Pi desktop — not over SSH. Type:
 ```bash
 cd ~/openFrameworks/examples/3d/3DPrimitivesExample
 make -j$(nproc)
 ./bin/3DPrimitivesExample
 ```
 
-You should see spinning 3D green shapes on screen. Press `Ctrl+C` to quit.
+You should see spinning 3D shapes on screen. Press `Ctrl+C` to quit.
 
-**Do not continue until this test works.**
+**Do not continue to the next step until this test works.**
 
 ---
 
-## Part 6 — Clone and Build Creepy Portrait
+## Part 6 — Download and Build Creepy Portrait
 
 ```bash
 cd ~/openFrameworks/apps/myApps
@@ -237,84 +267,49 @@ cd creepyportrait
 make -j$(nproc) Release
 ```
 
-Takes 2–5 minutes. Success looks like:
-
-```
-Linking bin/creepyportrait
-make[1]: Leaving directory '...'
-```
+This takes 2 to 5 minutes. You are done when you see `Linking bin/creepyportrait` with no red error lines.
 
 ---
 
-## Part 7 — Connect Your Webcam and Run
+## Part 7 — Plug In Your Webcam and Run
 
-**7.1** Plug your USB webcam into any USB port on the Pi.
+**Step 7.1 — Connect the webcam**
 
-**7.2** Verify it is detected:
+Plug your USB webcam into any USB port on the Pi.
 
+**Step 7.2 — Check the Pi can see it**
+
+Type:
 ```bash
 ls /dev/video*
 ```
 
-You should see `/dev/video0` in the list. If you only see `/dev/video10`
-and higher (no `video0`), the webcam is not detected — unplug, replug,
-try a different USB port.
+You should see `/dev/video0` in the list. If you only see numbers like `/dev/video10` or higher with no `video0`, unplug the webcam, wait a few seconds, and plug it back in.
 
-**7.3** Run from a terminal on the Pi desktop:
+**Step 7.3 — Run the program**
 
+Type:
 ```bash
 cd ~/openFrameworks/apps/myApps/creepyportrait
 MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0
 ```
 
-> **Why these are needed:**
-> `MESA_GL_VERSION_OVERRIDE=3.3` — forces Mesa to expose OpenGL 3.3 which the shaders require. Without this the app may crash or render incorrectly on Pi 4.
-> `GST_V4L2_USE_LIBV4L2=1` — tells GStreamer to use libv4l2 for webcam access, which fixes compatibility issues with some USB webcams including the C170.
-
-The window opens fullscreen. Step back 1–2 metres, face the camera, and
-wait 2–3 seconds. The skull will slowly turn to follow you.
-
-> **C170 users:** The C170 has a fixed focus lens optimised for around 1 metre.
-> For best detection stay close to that distance. Upgrade to a C920 for wall mount
-> use where people will be at varying distances.
-
-**Try all three models:**
-
-```bash
-MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0 jackevil    # evil jack-o-lantern
-MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0 jackhappy   # happy jack-o-lantern
-MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0 all         # all three, press m to cycle
-```
-
-> **Note — model switching:** The `m` key only works when launched with `all`. launching with a single model name like `skull` means there is only one model loaded so `m` appears to do nothing.
-
-> **Note — Pi camera not supported:** The `pi` argument crashes on modern
-> Pi OS (Bullseye 2021 and later). Always use a USB webcam with a numeric
-> device ID (`0`, `1`, etc.).
+The window will open fullscreen. Step back 1 to 2 metres from the camera, face it directly, and wait a few seconds. The skull will turn to look at you.
 
 ---
 
-## Keyboard Controls
+## Part 8 — Auto-Start When the Pi Turns On (Optional)
 
-| Key | What it does |
-|-----|-------------|
-| `v` | Toggle video overlay — shows camera feed and green box around detected faces |
-| `r` | Toggle auto-rotation — skull spins on its own, good for testing without webcam |
-| `m` | Switch to next model — **only works when launched with `all`, does nothing with a single model** |
-| `Ctrl+C` | Quit |
+If you want the skull to start automatically every time the Pi boots up:
 
----
-
-## Part 8 — Auto-Start on Boot (Optional)
-
-**8.1** Create the autostart file (replace `creepyportrait` with your username):
+**Step 8.1 — Create the autostart file**
 
 ```bash
 mkdir -p ~/.config/autostart
 nano ~/.config/autostart/creepyportrait.desktop
 ```
 
-**8.2** Paste this content:
+**Step 8.2 — Paste this content into the file**
 
 ```ini
 [Desktop Entry]
@@ -324,253 +319,151 @@ Exec=/bin/bash -c 'cd /home/creepyportrait/openFrameworks/apps/myApps/creepyport
 X-GNOME-Autostart-enabled=true
 ```
 
-Save: `Ctrl+O`, `Enter`. Exit: `Ctrl+X`.
+Save the file by pressing `Ctrl+O` then Enter. Close it by pressing `Ctrl+X`.
 
-**8.3** Set the Pi to boot to desktop without login prompt:
+**Step 8.3 — Set the Pi to boot to desktop automatically**
 
 ```bash
 sudo raspi-config
 ```
 
-Go to: **System Options → Boot / Auto Login → Desktop Autologin**
+Go to: **System Options** → **Boot / Auto Login** → **Desktop Autologin**
 
 Reboot to test:
-
 ```bash
 sudo reboot
 ```
 
 ---
 
-## Tuning for Better Tracking
+## Keyboard Controls
 
-Edit `src/main.cpp` inside the `#ifdef TARGET_RASPBERRY_PI` block.
-Edit `src/CreepyPortrait.cpp` for the angle multiplier setting.
-After any change rebuild with `make -j$(nproc) Release`.
+When the program is running, press these keys to control it:
 
----
-
-### `faceUpdateDelay`
-**Current optimised value: `0.01`** *(in `src/main.cpp`)*
-
-How long in seconds to wait between face detection runs.
-
-- **Lower** = more frequent detection, snappier tracking, higher CPU load
-- **Higher** = less frequent detection, smoother animation, lower CPU load
-- `0.01` runs detection as fast as possible — increase to `0.5`–`1.0` if the Pi feels sluggish or the animation is choppy
+| Key | What it does |
+|-----|-------------|
+| `v` | Show or hide the camera view and face detection box on screen |
+| `r` | Make the skull spin around automatically — good for testing |
+| `w` | Make the skull start wandering immediately without waiting |
+| `c` | Snap the skull back to face the center of the screen |
+| `e` | Turn eye animation on or off |
+| `j` | Open or close the jaw |
+| `s` | Play the audio clip |
+| `Ctrl+C` | Quit the program |
 
 ---
 
-### `videoFOV`
-**Current value: `60`** *(in `src/main.cpp`)*
+## Tuning the Tracking
 
-The diagonal field of view of your webcam in degrees. This must match your camera's actual spec or the skull will over or under rotate.
+You can adjust how the skull behaves by editing a settings file. Open a terminal and type:
+```bash
+cd ~/openFrameworks/apps/myApps/creepyportrait
+nano src/main.cpp
+```
 
-- **Too low** = skull over-rotates and overshoots faces at the edges of the frame
-- **Too high** = skull under-rotates and barely moves even when a face moves far left or right
-- Logitech C170 = `58`, Logitech C270 = `60`, Logitech C920 = `78`
+After making any changes, rebuild by typing:
+```bash
+make -j$(nproc) Release
+```
 
----
+**Face update delay** — how often the Pi looks for faces
+- Setting name: `faceUpdateDelay`
+- Default value: `0.01` (checks as fast as possible)
+- If the skull movement is jerky, increase this to `0.5` or `1.0`
 
-### `faceDepth`
-**Current optimised value: `20.0`** *(in `src/main.cpp`)*
+**Camera field of view** — must match your webcam
+- Setting name: `videoFOV`
+- Logitech C170: set to `58`
+- Logitech C270: set to `60`
+- Logitech C920: set to `78`
+- If wrong, the skull will overshoot or undershoot when tracking faces
 
-An assumed distance value used in the rotation angle calculation. Does not represent a real physical distance — it is a tuning multiplier that scales how much the skull rotates in response to a detected face.
+**How far to rotate** — how aggressively the skull follows faces
+- Setting name: `faceDepth`
+- Default: `20.0`
+- Increase if the skull barely moves. Decrease if it overshoots wildly.
 
-- **Higher** = skull rotates more aggressively to follow faces, more dramatic movement
-- **Lower** = skull rotates less, subtle movement, may feel unresponsive
-- If the skull barely moves try increasing this first. If the skull wildly overshoots try decreasing it.
+**Reset delay** — how long before the skull returns to center after losing a face
+- Setting name: `noFaceResetSeconds`
+- Default: `6.0` seconds
+- Increase for a busy room where people move in and out frequently
 
----
-
-### `noFaceResetSeconds`
-**Current value: `6.0`** *(in `src/main.cpp`)*
-
-How many seconds to wait after losing a detected face before the skull slowly rotates back to center.
-
-- **Higher** = skull holds its last position longer before resetting — good for busy rooms where people move in and out of frame frequently
-- **Lower** = skull snaps back to center quickly after a person walks away
-- For a Halloween display `6.0`–`10.0` works well to avoid constant resetting
-
----
-
-### `videoWidth` / `videoHeight`
-**Current optimised value: `320x240`** *(in `src/main.cpp`)*
-
-The resolution the face detector runs at. Higher resolution gives the detector more detail to work with but uses more CPU.
-
-- **Higher** (`320x240`, `640x480`) = better detection at distance and in low light, more CPU load
-- **Lower** (`160x120`) = faster detection, less CPU, may miss faces at distance or in poor lighting
-- `320x240` is the recommended balance for Pi 4. Only increase to `640x480` on Pi 5.
-
----
-
-### `angle.y` multiplier
-**Current optimised value: `4.0`** *(in `src/CreepyPortrait.cpp`)*
-
-Find the line: `return glm::vec2(angle.x * 2.0, angle.y * 4.0);`
-
-Scales how much the skull rotates vertically (up/down) in response to a detected face position. The `angle.x` value controls left/right rotation.
-
-- **Higher `angle.y`** = more up/down movement, skull reacts more to vertical face position changes
-- **Lower `angle.y`** = less up/down movement, skull stays more level regardless of face height
-- **Higher `angle.x`** = more left/right rotation range
-- **Lower `angle.x`** = more subtle left/right movement
-- The Haar face detector is less sensitive vertically than horizontally, which is why `angle.y` is set higher than `angle.x`
-
----
-
-### `setNeighbors`
-**Current optimised value: `5`** *(in `src/VideoFaceDetector.cpp`)*
-
-How many overlapping detections are required before something is confirmed as a real face. This is the most important setting for reducing false positives.
-
-- **Higher** = fewer false positives, more stable tracking, may miss faces in poor lighting
-- **Lower** = more sensitive, picks up faces easier but also detects background objects as faces
-- `1` is too sensitive — background objects get detected as faces
-- `5` is the recommended balance — stable tracking with minimal false positives
-- If the detector stops finding your face try dropping to `3` or `4`
-
----
-
-### `setScaleHaar`
-**Current value: `1.05`** *(in `src/VideoFaceDetector.cpp`)*
-
-The scale step used when scanning the image at multiple sizes to find faces.
-
-- **Lower** (e.g. `1.05`) = more thorough scan, finds faces at more sizes, slower
-- **Higher** (e.g. `1.2`) = faster scan, may miss faces at certain distances
-- `1.05` is the recommended value — leave this alone unless CPU is struggling
-
----
-
-### `setMinAreaRadius`
-**Current optimised value: `30`** *(in `src/VideoFaceDetector.cpp`)*
-
-The minimum size in pixels a detected region must be to be considered a face. Filters out small false positives from distant objects or background patterns.
-
-- **Higher** = only detects larger/closer faces, ignores small distant detections
-- **Lower** = detects smaller/more distant faces but increases false positives
-- `30` works well at 1–3 metre range with `320x240` resolution
-- If upgrading to `640x480` resolution consider increasing to `50`–`60`
+**Wander delay** — how long with no face before the skull starts wandering
+- Setting name: `noFaceWanderSeconds`
+- Default: `600.0` seconds (10 minutes)
+- Decrease for a display where you want the wandering effect more often
 
 ---
 
 ## Troubleshooting
 
-**`[warning] ofGstVideoUtils: update(): ofGstVideoUtils not loaded` — repeating**
-This is NOT an error. It means the webcam is not plugged in and GStreamer
-cannot open the video device. The skull will still display correctly.
-To stop the warnings: plug in your USB webcam. To suppress them while
-testing without a webcam:
-```bash
-MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0 2>/dev/null
-```
+**The skull crashes immediately with a platform error**
+You are still on Wayland. Follow step 2.4 to switch to X11. Run `echo $XDG_SESSION_TYPE` — it must show `x11`.
 
-**`Failed to detect any supported platform` or `GLXBadFBConfig`**
-X11 is not active. Run `echo $XDG_SESSION_TYPE` — if it shows `wayland`
-you need to switch to X11 via raspi-config:
-```bash
-sudo raspi-config
-# Advanced Options → Wayland → X11
-sudo reboot
-```
+**The skull crashes when run over SSH**
+SSH sessions have no display. You must run the program from a terminal on the Pi's own desktop — either with a physical monitor or through VNC with a desktop window.
 
-**`X11: Platform not initialized` / segfault on launch**
-You are running from a plain SSH session with no display. Open a terminal
-from inside the Pi desktop (physical monitor or VNC desktop window) and
-run from there. Or set the display manually:
-```bash
-export DISPLAY=:0
-./bin/creepyportrait 0
-```
+**The skull is completely white with no colours or textures**
+You are running through VNC which does not support the hardware graphics the skull needs. Connect a real HDMI monitor.
 
-**Skull is completely white with no textures**
-This happens when running through VNC — VNC software rendering does not
-support the hardware OpenGL shaders. Connect a real HDMI monitor for
-correct rendering with full textures and lighting.
+**The skull does not move when I stand in front of the camera**
+Press `v` to show the camera view. If you can see yourself but no green box appears around your face, try moving closer (about 1 metre), improve the room lighting, and face the camera directly. The face detector works best with even lighting on a face looking straight ahead.
 
-**`E: Unable to locate package libgconf-2-4` during install_dependencies.sh**
-Safe to ignore. This package was removed from Debian Trixie. The script
-still installs all the packages that actually matter.
+**The green box appears on background objects when nobody is there**
+The face detector is picking up false positives. Open `src/VideoFaceDetector.cpp` and find `setNeighbors` — increase the value from `5` to `7` or `8` to make detection more strict.
 
-**`couldn't find gstreamer-app-0.10` or similar old package names**
-The OF dependency script references some old Debian package names. Install
-the modern replacements using the full apt block in Part 4.3.
+**The skull movement is very choppy**
+Increase `faceUpdateDelay` to `1.0` or `2.0` in `src/main.cpp` and rebuild.
 
-**App opens and immediately closes**
-Always run from the project directory — the app looks for data files
-relative to where you launched it:
+**No `/dev/video0` after plugging in the webcam**
+Type `lsusb` to see if the Pi can see the webcam at all. Try a different USB port. If it still does not appear, test the webcam on another computer.
+
+**The program opens and immediately closes**
+Always navigate to the project folder first before running:
 ```bash
 cd ~/openFrameworks/apps/myApps/creepyportrait
 ./bin/creepyportrait 0
 ```
 
-**`Cannot find haarcascade_frontalface_default.xml`**
-Same as above — wrong launch directory. Always `cd` into the project folder first.
-
-**No `/dev/video0` after plugging in webcam**
-Check the webcam is detected at all:
-```bash
-lsusb
-```
-Your webcam should appear in the list. If not, try a different USB port
-or test the webcam on another computer.
-
-**Face not tracking — skull stares forward**
-Press `v` to show the video overlay. If you can see yourself but no green
-box appears: move closer to the camera (1 metre), improve room lighting,
-face the camera directly. The Haar detector works best with a well-lit
-face looking straight at the camera.
-
-**Very choppy / slow tracking**
-Increase `faceUpdateDelay` to `1.5` or `2.0` in `src/main.cpp` and rebuild.
-The skull reacts slower but animation is smoother.
-
-**Out of memory during compilation**
-Add swap space:
+**Compilation fails with out of memory error**
+Add more swap space:
 ```bash
 sudo dphys-swapfile swapoff
-sudo nano /etc/dphys-swapfile   # change CONF_SWAPSIZE=100 to CONF_SWAPSIZE=1024
+sudo nano /etc/dphys-swapfile
+```
+Find the line that says `CONF_SWAPSIZE=100` and change `100` to `1024`. Save, exit, then:
+```bash
 sudo dphys-swapfile setup
 sudo dphys-swapfile swapon
 ```
-Then retry `make -j$(nproc) Release`.
+Try compiling again.
 
-**`ofGLProgrammableRenderer` compile errors**
-Make sure you cloned from the `update_test` branch, not `main`:
-```bash
-git clone -b update_test https://github.com/maserowik/creepyportrait creepyportrait
-```
-
----
-
-## Hardware Summary
-
-| Pi Model | Works? | Notes |
-|----------|--------|-------|
-| Pi 4 (2GB+) | ✅ Yes | Recommended minimum |
-| Pi 5 | ✅ Yes | Faster, better tracking |
-| Pi 400 | ✅ Yes | Same chip as Pi 4 |
-| Pi 3B / 3B+ | ❌ No | Wrong GPU for modern Pi OS |
-| Pi Zero 2W | ❌ No | Same GPU issue + only 512MB RAM |
-| Pi 1 / 2 / Zero | ❌ No | Too slow, wrong GPU, 32-bit only |
-
-**If your board is not in the ✅ column, stop here — it will not work.**
+**Warning about `ofGstVideoUtils not loaded` repeating constantly**
+This is not an error. It just means the webcam is not plugged in. Plug in the webcam to stop the warnings.
 
 ---
 
 ## Webcam Reference
 
-| Camera | FOV | Focus | Low Light | Notes |
-|--------|-----|-------|-----------|-------|
-| Logitech C170 | 58° | Fixed | Basic | Good for testing, limited range |
-| Logitech C270 | 60° | Fixed | Good | Solid all-rounder |
-| Logitech C920 | 78° | Auto | Excellent | Recommended for wall mount |
-
-Set `videoFOV` in `src/main.cpp` to match your camera's FOV value above.
+| Camera | Field of View | Focus | Low Light | Best For |
+|--------|--------------|-------|-----------|---------|
+| Logitech C170 | 58° | Fixed | Basic | Testing only |
+| Logitech C270 | 60° | Fixed | Good | General use |
+| Logitech C920 | 78° | Auto | Excellent | Permanent wall mount |
 
 ---
 
-*Project originally by Tony DiCola / Adafruit (2013).
-Modernized for openFrameworks 0.12+ on Raspberry Pi 4/5 by @maserowik.*
+## Hardware Compatibility
+
+| Pi Model | Works? | Notes |
+|----------|--------|-------|
+| Pi 4 (2GB+) | ✅ Yes | Recommended |
+| Pi 5 | ✅ Yes | Faster |
+| Pi 400 | ✅ Yes | Same as Pi 4 |
+| Pi 3B / 3B+ | ❌ No | Wrong graphics hardware |
+| Pi Zero 2W | ❌ No | Wrong graphics hardware, not enough RAM |
+| Pi 1 / 2 / Zero | ❌ No | Too slow |
+
+---
+
+*Original project by Tony DiCola / Adafruit (2013). Modernized for openFrameworks 0.12+ on Raspberry Pi 4/5 by @maserowik.*
