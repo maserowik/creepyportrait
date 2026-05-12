@@ -30,7 +30,7 @@ void CreepyPortrait::setup(){
 								"models/skull_specular_1024.jpg",
 								"models/skull_ao_1024.jpg",
 								"models/skull_normal_1024.jpg",
-								1.0,	// Don't scale the skull.
+								0.95,	// Skull scaled down 5% to prevent jaw clipping.
 								30.0,	// Move the skull up to center.
 								0.0,	// Don't rotate the skull.
 								true,	// Has eyes.
