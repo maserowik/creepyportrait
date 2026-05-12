@@ -117,6 +117,20 @@ Four eye animation effects were implemented, all driven from `updateCurrentRotat
 
 ---
 
+## Phase 8 — Float Drift
+
+**What changed:** `CreepyPortrait.cpp`, `CreepyPortrait.h`
+
+During idle wander mode, the skull now drifts its screen position as well as rotating. Two overlapping sine waves at different frequencies drive `wanderDrift.x` and `wanderDrift.y` independently, producing slow unpredictable movement across the screen. The frequencies and phases are chosen to avoid any obvious repeating pattern — the skull never traces the same path twice within a reasonable viewing period.
+
+The drift is applied in `draw()` as an `ofTranslate(wanderDrift.x, wanderDrift.y, 0)` inside the camera transform block, after `ofPushMatrix()` and before the rotation calls. This means the drift moves the skull in screen space relative to the camera, which feels natural.
+
+When a face is detected and wander mode ends, `wanderDrift` lerps back toward zero each frame using `glm::mix` with a factor of `0.05f`. This gives a smooth glide back to center rather than a snap. Phase 6 (snap to center) will handle the rotation snap separately — the drift intentionally uses a softer return.
+
+The drift amplitudes (`±180` pixels on X, `±100` pixels on Y) were chosen to keep the skull clearly on screen at typical display resolutions while still making the movement feel significant and unsettling.
+
+---
+
 ## What Has Not Changed
 
 The face detection algorithm itself — a Haar cascade classifier — is the same algorithm from 2013. It works well in good lighting with faces looking directly at the camera, but struggles in low light and with faces at angles. A future improvement (Phase 16 in the roadmap) would replace it with a modern DNN-based detector for better real-world performance.

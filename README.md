@@ -9,7 +9,7 @@ A life-sized 3D skull (or jack-o-lantern) that watches you. Point a webcam at an
 ## What It Does
 
 - **Follows your face** — the skull turns left, right, up and down to track whoever is standing in front of the camera
-- **Wanders when alone** — after 10 minutes with nobody detected, the skull slowly looks around the room in a figure-8 pattern
+- **Wanders when alone** — after 10 minutes with nobody detected, the skull slowly looks around the room in a figure-8 pattern and drifts around the screen using organic sine wave movement
 - **Animated eyes** — bloodshot eyes that pulse, blink with a realistic eyelid sweeping down and back up, and make subtle random movements
 - **Jaw movement** — the jaw opens and closes in sync with audio
 - **Sound** — plays audio clips when a face is detected
