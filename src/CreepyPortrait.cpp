@@ -1,9 +1,17 @@
 #include "CreepyPortrait.h"
+#include <fstream>
+#include <sstream>
+#include <sys/statvfs.h>
+#include <ctime>
+#include <ifaddrs.h>
+#include <arpa/inet.h>
+#include <net/if.h>
 
 using namespace std;
 
 //--------------------------------------------------------------
 void CreepyPortrait::setup(){
+    appStartTime = ofGetElapsedTimef();
 	ofSetVerticalSync(true);
 	// Make texture coordinates go from 0...1
 	ofDisableArbTex();
@@ -56,6 +64,12 @@ void CreepyPortrait::setup(){
 								-40.0,		// Move the pumpkin down to center.
 								-4.0));		// Rotate the happy pumpkin to better face center.
 	}
+	// Parallel name list - must match models.push_back order above
+	modelNames.clear();
+	modelNames.push_back("skull");
+	modelNames.push_back("jack_evil");
+	modelNames.push_back("jack_happy");
+	currentModelIndex = 0;
 	currentModel = begin(models);
 	// Prime the time delta for the first update loop run.
 	lastUpdate = ofGetElapsedTimef();
@@ -127,6 +141,40 @@ void CreepyPortrait::draw(){
 			ofPopStyle();
 		}
 	}
+
+    // System info overlay (toggle with 'i')
+    if (showSysInfo) {
+        std::string info = getSysInfoString();
+        // Count lines for background rect height
+        int lineCount = 0;
+        for (char ch : info) if (ch == 0x0a) lineCount++;
+        int boxX = ofGetWidth() - 462;
+        int boxY = 14;
+        int boxW = 458;
+        int boxH = lineCount * 14 + 16;
+        // Draw background rect via raw GL - bypasses OF blend state entirely
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glLoadIdentity();
+        glOrtho(0, ofGetWidth(), ofGetHeight(), 0, -1, 1);
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+        glDisable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
+        glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
+        glRecti(boxX, boxY, boxX + boxW, boxY + boxH);
+        glEnable(GL_BLEND);
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
+        ofPushStyle();
+        ofEnableAlphaBlending();
+        ofSetColor(200, 255, 200, 255);
+        ofDrawBitmapString(info, boxX + 6, boxY + 14);
+        ofPopStyle();
+    }
 }
 
 void CreepyPortrait::updateCurrentRotation() {
@@ -311,7 +359,10 @@ glm::vec2 CreepyPortrait::cameraAngleToModelAngle(const glm::vec2& angle, float 
 
 //--------------------------------------------------------------
 void CreepyPortrait::keyPressed(int key){
-	if (key == 'v') {
+	if (key == 'i') {
+        showSysInfo = !showSysInfo;
+    }
+    else if (key == 'v') {
 		displayVideo = !displayVideo;
 	}
 	else if (key == 'r') {
@@ -321,12 +372,14 @@ void CreepyPortrait::keyPressed(int key){
 		currentModel++;
 		if (currentModel == end(models)) {
 			currentModel = begin(models);
+			currentModelIndex = 0;
 		}
 	}
 	else if (key == 'c') {
 		targetRotation = glm::vec2(0, 0);
 		currentRotation = glm::vec2(0, 0);
 		faceLastSeen = ofGetElapsedTimef(); // Phase 7 - exit wander mode
+		rotateSkull = false; // stop r rotation mode
 	}
 	else if (key == 'j') {
 		// j key - toggle jaw open/closed only, no audio
@@ -399,3 +452,198 @@ void CreepyPortrait::dragEvent(ofDragInfo dragInfo){
 // 		model.getMesh(i).save(filename.str(), false);
 // 	}
 // }
+
+//--------------------------------------------------------------
+std::string CreepyPortrait::getSysInfoString() {
+    std::ostringstream out;
+
+    // ── Date / time ──────────────────────────────────────────────────────────────────────────────────────────────────────
+    time_t now = time(nullptr);
+    char timebuf[64];
+    strftime(timebuf, sizeof(timebuf), "%Y-%m-%d  %H:%M:%S", localtime(&now));
+    out << "Date/Time : " << timebuf << "\n";
+
+    // App uptime
+    float appSecs = ofGetElapsedTimef() - appStartTime;
+    int ah  = (int)(appSecs / 3600);
+    int am  = (int)(appSecs / 60) % 60;
+    int as_ = (int)appSecs % 60;
+    char appbuf[32];
+    snprintf(appbuf, sizeof(appbuf), "%02dh %02dm %02ds", ah, am, as_);
+    out << "App uptime: " << appbuf << "\n";
+
+    // System uptime + boot time
+    {
+        std::ifstream f("/proc/uptime");
+        double uptimeSecs = 0;
+        if (f >> uptimeSecs) {
+            time_t bootEpoch = now - (time_t)uptimeSecs;
+            char bootbuf[64];
+            strftime(bootbuf, sizeof(bootbuf), "%Y-%m-%d %H:%M", localtime(&bootEpoch));
+            int uh = (int)(uptimeSecs / 3600);
+            int um = (int)(uptimeSecs / 60) % 60;
+            char upbuf[32];
+            snprintf(upbuf, sizeof(upbuf), "%02dh %02dm", uh, um);
+            out << "System up : " << upbuf << "  (booted " << bootbuf << ")\n";
+        }
+    }
+
+    // Hostname
+    {
+        char hbuf[256] = {};
+        if (gethostname(hbuf, sizeof(hbuf)) == 0)
+            out << "Hostname  : " << hbuf << "\n";
+    }
+
+    // IP addresses (all active non-loopback interfaces)
+    {
+        struct ifaddrs *ifap = nullptr;
+        if (getifaddrs(&ifap) == 0) {
+            for (struct ifaddrs *ifa = ifap; ifa; ifa = ifa->ifa_next) {
+                if (!ifa->ifa_addr) continue;
+                if (!(ifa->ifa_flags & IFF_UP)) continue;
+                std::string iname(ifa->ifa_name);
+                if (iname == "lo") continue;
+                if (ifa->ifa_addr->sa_family == AF_INET) {
+                    char ipbuf[INET_ADDRSTRLEN] = {};
+                    inet_ntop(AF_INET,
+                        &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr,
+                        ipbuf, sizeof(ipbuf));
+                    out << "IP (" << iname << ")   : " << ipbuf << "\n";
+                }
+            }
+            // MAC addresses via sysfs
+            for (struct ifaddrs *ifa = ifap; ifa; ifa = ifa->ifa_next) {
+                if (!ifa->ifa_addr) continue;
+                if (!(ifa->ifa_flags & IFF_UP)) continue;
+                std::string iname(ifa->ifa_name);
+                if (iname == "lo") continue;
+                if (ifa->ifa_addr->sa_family == AF_PACKET) {
+                    std::ifstream mf("/sys/class/net/" + iname + "/address");
+                    std::string mac;
+                    if (std::getline(mf, mac))
+                        out << "MAC (" << iname << ")  : " << mac << "\n";
+                }
+            }
+            freeifaddrs(ifap);
+        }
+    }
+
+    // Kernel
+    {
+        std::ifstream f("/proc/version");
+        std::string line;
+        if (std::getline(f, line)) {
+            if (line.size() > 58) line = line.substr(0, 58) + "...";
+            out << "Kernel    : " << line << "\n";
+        }
+    }
+
+    // CPU model
+    {
+        std::ifstream f("/proc/cpuinfo");
+        std::string line;
+        bool found = false;
+        while (std::getline(f, line) && !found) {
+            if (line.rfind("Model name", 0) == 0 || line.rfind("Model", 0) == 0) {
+                auto colon = line.find(':');
+                if (colon != std::string::npos) {
+                    std::string cpu = line.substr(colon + 2);
+                    if (cpu.size() > 42) cpu = cpu.substr(0, 42) + "...";
+                    out << "CPU model : " << cpu << "\n";
+                    found = true;
+                }
+            }
+        }
+    }
+
+    // CPU frequency
+    {
+        std::ifstream f("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq");
+        long freqKhz = 0;
+        if (f >> freqKhz) {
+            char fbuf[32];
+            snprintf(fbuf, sizeof(fbuf), "%.0f MHz", freqKhz / 1000.0f);
+            out << "CPU freq  : " << fbuf << "\n";
+        }
+    }
+
+    // CPU temperature
+    {
+        std::ifstream f("/sys/class/thermal/thermal_zone0/temp");
+        int millideg = 0;
+        if (f >> millideg) {
+            float c = millideg / 1000.0f;
+            char tbuf[64];
+            snprintf(tbuf, sizeof(tbuf), "%.1f C  (%.1f F)", c, c * 9.0f / 5.0f + 32.0f);
+            out << "CPU temp  : " << tbuf << "\n";
+        }
+    }
+
+    // RAM
+    {
+        std::ifstream f("/proc/meminfo");
+        std::string line;
+        long totalKB = 0, availKB = 0;
+        while (std::getline(f, line)) {
+            if (line.rfind("MemTotal:",     0) == 0) sscanf(line.c_str(), "MemTotal: %ld",     &totalKB);
+            if (line.rfind("MemAvailable:", 0) == 0) sscanf(line.c_str(), "MemAvailable: %ld", &availKB);
+        }
+        if (totalKB > 0) {
+            float usedMB  = (totalKB - availKB) / 1024.0f;
+            float totalMB = totalKB / 1024.0f;
+            char rbuf[64];
+            snprintf(rbuf, sizeof(rbuf), "%.0f MB used / %.0f MB total  (%.0f%% used)",
+                     usedMB, totalMB, 100.0f * usedMB / totalMB);
+            out << "RAM       : " << rbuf << "\n";
+        }
+    }
+
+    // Disk
+    {
+        struct statvfs sv;
+        if (statvfs("/", &sv) == 0) {
+            float totalGB = (float)(sv.f_blocks * sv.f_frsize) / (1024.0f*1024*1024);
+            float freeGB  = (float)(sv.f_bfree  * sv.f_frsize) / (1024.0f*1024*1024);
+            float usedGB  = totalGB - freeGB;
+            char dbuf[64];
+            snprintf(dbuf, sizeof(dbuf), "%.1f GB used / %.1f GB total  (%.0f%% used)",
+                     usedGB, totalGB, 100.0f * usedGB / totalGB);
+            out << "Disk /    : " << dbuf << "\n";
+        }
+    }
+
+    // ── App stats ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    out << "\n";
+
+    // FPS
+    {
+        char fpsbuf[32];
+        snprintf(fpsbuf, sizeof(fpsbuf), "%.1f", ofGetFrameRate());
+        out << "FPS       : " << fpsbuf << "\n";
+    }
+
+    // Current model name
+    if (currentModelIndex >= 0 && currentModelIndex < (int)modelNames.size())
+        out << "Model     : " << modelNames[currentModelIndex] << "\n";
+
+    // Rotation angles
+    {
+        char rotbuf[64];
+        snprintf(rotbuf, sizeof(rotbuf), "x=%.1f  y=%.1f", currentRotation.x, currentRotation.y);
+        out << "Rotation  : " << rotbuf << "\n";
+    }
+
+    // Face state
+    {
+        float sinceface = ofGetElapsedTimef() - faceLastSeen;
+        char fbuf[64];
+        if (sinceface < 1.0f)
+            snprintf(fbuf, sizeof(fbuf), "YES");
+        else
+            snprintf(fbuf, sizeof(fbuf), "no  (%.0fs ago)", sinceface);
+        out << "Face      : " << fbuf << "\n";
+    }
+
+    return out.str();
+}

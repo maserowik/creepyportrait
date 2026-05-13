@@ -25,6 +25,11 @@ public:
 	void draw();
 
 	void keyPressed(int key);
+	std::string getSysInfoString();
+	std::vector<std::string> modelNames;
+	int currentModelIndex = 0;
+	bool showSysInfo = false;
+	float appStartTime = 0.0f;
 	void keyReleased(int key);
 	void mouseMoved(int x, int y );
 	void mouseDragged(int x, int y, int button);
