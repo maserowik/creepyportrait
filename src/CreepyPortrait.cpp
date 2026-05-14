@@ -81,12 +81,27 @@ void CreepyPortrait::setup(){
 	currentModel = begin(models);
 	// Prime the time delta for the first update loop run.
 	lastUpdate = ofGetElapsedTimef();
-	// Phase 6 - Audio setup
-	audioClips.push_back("audio/Test_Clip.wav");
-	// Add more clips here: audioClips.push_back("audio/growl.wav");
+	// Phase 10 - Scan audio/ dir and load all .wav files
+	{
+		ofDirectory audioDir("audio");
+		audioDir.allowExt("wav");
+		audioDir.listDir();
+		for (auto& f : audioDir.getFiles()) {
+			audioClips.push_back(f.path());
+		}
+		if (audioClips.empty()) {
+			audioClips.push_back("audio/Test_Clip.wav");
+		}
+		std::sort(audioClips.begin(), audioClips.end());
+		ofLogWarning("CreepyPortrait::setup") << "audio clips found: " << audioClips.size();
+		for (auto& c : audioClips) ofLogWarning("CreepyPortrait::setup") << "  " << c;
+	}
 	soundPlayer.load(audioClips[0]);
 	soundPlayer.setLoop(false);
 	soundPlayer.setVolume(1.0f);
+	audioRepeatDelay = ofRandom(8.0f, 20.0f);
+	audioRepeatTimer = 0.0f;
+	audioWanderTimer = ofRandom(15.0f, 45.0f);
 	// Phase 7 - Seed blink timer
 	dilationTimer = ofRandom(2.0f, 8.0f);
 	// Phase 7 - Seed microsaccade timer
@@ -315,22 +330,60 @@ void CreepyPortrait::updateCurrentRotation() {
 		if (jawOpen) currentModel->jawAngle = ofLerp(currentModel->jawAngle, 25.0f, 0.12f);
 		else currentModel->jawAngle = ofLerp(currentModel->jawAngle, 0.0f, 0.12f);
 	}
-	// Phase 6 - Audio state machine
+	// Phase 10 - Audio state machine (random clips, replay, wander audio)
 	bool faceNow = detector.isFaceDetected();
-	if (faceNow && audioState == AUDIO_IDLE) {
-		// Face appeared - play clip
-		soundPlayer.play();
-		ofLogWarning("CreepyPortrait") << "audio playing: " << audioClips[0];
-		audioState = AUDIO_TRIGGERED;
-	} else if (!faceNow && audioState != AUDIO_IDLE) {
-		// Face lost - stop audio
-		soundPlayer.stop();
-		audioState = AUDIO_IDLE;
-	} else if (audioState == AUDIO_TRIGGERED && soundPlayer.isPlaying()) {
-		audioState = AUDIO_PLAYING;
-	} else if (audioState == AUDIO_PLAYING && !soundPlayer.isPlaying()) {
-		// Clip finished - idle until next face detection cycle
-		audioState = AUDIO_IDLE;
+	if (!audioClips.empty()) {
+		bool wandering = (!rotateSkull && (time - faceLastSeen) > noFaceWanderSeconds);
+		if (faceNow && audioState == AUDIO_IDLE) {
+			// Face appeared - pick and play a random clip
+			int idx = (int)ofRandom(0, (float)audioClips.size());
+			idx = ofClamp(idx, 0, (int)audioClips.size() - 1);
+			soundPlayer.load(audioClips[idx]);
+			soundPlayer.play();
+			ofLogWarning("CreepyPortrait") << "audio playing: " << audioClips[idx];
+			audioState = AUDIO_TRIGGERED;
+			audioRepeatTimer = 0.0f;
+			audioRepeatDelay = ofRandom(8.0f, 20.0f);
+		} else if (!faceNow && !wandering && audioState != AUDIO_IDLE) {
+			// Face lost (not wandering) - stop audio
+			soundPlayer.stop();
+			audioState = AUDIO_IDLE;
+		} else if (audioState == AUDIO_TRIGGERED && soundPlayer.isPlaying()) {
+			audioState = AUDIO_PLAYING;
+		} else if (audioState == AUDIO_PLAYING && !soundPlayer.isPlaying()) {
+			// Clip finished
+			audioState = AUDIO_IDLE;
+			audioRepeatTimer = 0.0f;
+			audioRepeatDelay = ofRandom(8.0f, 20.0f);
+		} else if (faceNow && audioState == AUDIO_IDLE) {
+			// Face still present - count down to replay
+			audioRepeatTimer += delta;
+			if (audioRepeatTimer >= audioRepeatDelay) {
+				int idx = (int)ofRandom(0, (float)audioClips.size());
+				idx = ofClamp(idx, 0, (int)audioClips.size() - 1);
+				soundPlayer.load(audioClips[idx]);
+				soundPlayer.play();
+				ofLogWarning("CreepyPortrait") << "audio replay: " << audioClips[idx];
+				audioState = AUDIO_TRIGGERED;
+				audioRepeatTimer = 0.0f;
+				audioRepeatDelay = ofRandom(8.0f, 20.0f);
+			}
+		}
+		// Wander audio - occasional random clip during idle wander
+		if (wandering && audioState == AUDIO_IDLE) {
+			audioWanderTimer -= delta;
+			if (audioWanderTimer <= 0.0f) {
+				int idx = (int)ofRandom(0, (float)audioClips.size());
+				idx = ofClamp(idx, 0, (int)audioClips.size() - 1);
+				soundPlayer.load(audioClips[idx]);
+				soundPlayer.play();
+				ofLogWarning("CreepyPortrait") << "audio wander: " << audioClips[idx];
+				audioState = AUDIO_TRIGGERED;
+				audioWanderTimer = ofRandom(15.0f, 45.0f);
+			}
+		} else if (!wandering) {
+			audioWanderTimer = ofRandom(15.0f, 45.0f);
+		}
 	}
 	// Phase 6 - Jaw driven by spectrum amplitude
 	ofSoundUpdate();
@@ -370,12 +423,15 @@ glm::vec2 CreepyPortrait::cameraAngleToModelAngle(const glm::vec2& angle, float 
 void CreepyPortrait::keyPressed(int key){
 	if (key == 'i') {
         showSysInfo = !showSysInfo;
+        ofLogWarning("CreepyPortrait") << "key i: sysinfo " << (showSysInfo ? "ON" : "OFF");
     }
     else if (key == 'v') {
 		displayVideo = !displayVideo;
+		ofLogWarning("CreepyPortrait") << "key v: video overlay " << (displayVideo ? "ON" : "OFF");
 	}
 	else if (key == 'r') {
 		rotateSkull = !rotateSkull;
+		ofLogWarning("CreepyPortrait") << "key r: rotate " << (rotateSkull ? "ON" : "OFF");
 		if (rotateSkull) {
 			faceLastSeen = ofGetElapsedTimef(); // exit wander when r activates
 		}
@@ -392,18 +448,27 @@ void CreepyPortrait::keyPressed(int key){
 		currentRotation = glm::vec2(0, 0);
 		faceLastSeen = ofGetElapsedTimef(); // Phase 7 - exit wander mode
 		rotateSkull = false; // stop r rotation mode
+		ofLogWarning("CreepyPortrait") << "key c: center + wander reset";
 	}
 	else if (key == 'j') {
 		// j key - toggle jaw open/closed only, no audio
 		jawOpen = !jawOpen;
+		ofLogWarning("CreepyPortrait") << "key j: jaw " << (jawOpen ? "OPEN" : "CLOSED");
 	}
 	else if (key == 's') {
-		// s key - play sound only, no jaw
-		soundPlayer.play();
+		// s key - play a random clip
+		if (!audioClips.empty()) {
+			int idx = (int)ofRandom(0, (float)audioClips.size());
+			idx = ofClamp(idx, 0, (int)audioClips.size() - 1);
+			soundPlayer.load(audioClips[idx]);
+			soundPlayer.play();
+			ofLogWarning("CreepyPortrait") << "audio s-key: " << audioClips[idx];
+		}
 	}
 	else if (key == 'w') {
 		// w key - toggle wander via explicit flag
 		forceWander = !forceWander;
+		ofLogWarning("CreepyPortrait") << "key w: wander " << (forceWander ? "ON" : "OFF");
 		if (forceWander) {
 			faceLastSeen = -99999.0f;
 		} else {
@@ -413,6 +478,7 @@ void CreepyPortrait::keyPressed(int key){
 	else if (key == 'e') {
 		// e key - toggle eye animation on/off
 		eyeAnimEnabled = !eyeAnimEnabled;
+		ofLogWarning("CreepyPortrait") << "key e: eye anim " << (eyeAnimEnabled ? "ON" : "OFF");
 	}
 }
 

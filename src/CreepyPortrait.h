@@ -117,12 +117,16 @@ private:
 	glm::vec2 oldRotation;
 	bool jawOpen = false;
 	bool eyeAnimEnabled = true;
-	// Phase 6 - Audio
+	// Phase 6/10 - Audio
 	enum AudioState { AUDIO_IDLE, AUDIO_TRIGGERED, AUDIO_PLAYING };
 	AudioState audioState = AUDIO_IDLE;
 	ofSoundPlayer soundPlayer;
 	float smoothAmplitude = 0.0f;
 	std::vector<std::string> audioClips;
+	// Phase 10 - repeat and wander timers
+	float audioRepeatTimer = 0.0f;   // counts up since last clip ended
+	float audioRepeatDelay = 12.0f;  // randomised gap before replay
+	float audioWanderTimer = 30.0f;  // countdown to next wander clip
 
 	// Phase 3 - Eye system
 	glm::vec2 eyeRotation;
