@@ -4,9 +4,13 @@
 using namespace std;
 
 VideoFaceDetector::VideoFaceDetector() {
+	if (!ofFile::doesFileExist("haarcascade_frontalface_default.xml")) {
+		ofLogError("VideoFaceDetector") << "ofxCvHaarFinder::setup() failed - file not found: haarcascade_frontalface_default.xml";
+	}
 	finder.setup("haarcascade_frontalface_default.xml");
 	finder.setScaleHaar(1.05);
 	finder.setNeighbors(5);
+	ofLogWarning("VideoFaceDetector") << "haar cascade loaded: haarcascade_frontalface_default.xml neighbors=5 scale=1.05";
 }
 
 

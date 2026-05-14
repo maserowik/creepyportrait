@@ -146,6 +146,11 @@ private:
 	glm::vec2 dartOffset;
 	bool darting = false;
 
+	// Phase 14 - Logging state transition guards
+	bool wasFaceDetected = false;
+	bool wasWandering = false;
+        bool forceWander = false;
+
 	// Microsaccade
 	float microsaccadeTimer = 0.0f;
 	glm::vec2 microsaccadeOffset;

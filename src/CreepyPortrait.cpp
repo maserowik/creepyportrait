@@ -17,6 +17,9 @@ void CreepyPortrait::setup(){
 	ofDisableArbTex();
 	// Calculate focal length of video camera (relative to video pixel size).
 	pixelFocalLength = sqrt(pow(video->getWidth()/2.0, 2) + pow(video->getHeight()/2.0, 2))/sin(ofDegToRad(videoFOV/2.0));
+	ofLogWarning("CreepyPortrait::setup") << "webcam opened:"
+		<< " resolution=" << video->getWidth() << "x" << video->getHeight()
+		<< " FOV=" << videoFOV;
 	// Set up model rotation state
 	currentRotation = glm::vec2(0, 0);
 	// Set up camera
@@ -29,8 +32,10 @@ void CreepyPortrait::setup(){
 	// Image provided by: http://www.flickr.com/photos/57845051@N00/2884743046/
 	// Modern OF: load() replaces deprecated loadImage()
 	curtain.load("redcurtain_1024.jpg");
+	ofLogWarning("CreepyPortrait::setup") << "background loaded: redcurtain_1024.jpg";
 	// Load lighting shader
 	shader.load(skullVertexShader, skullFragmentShader);
+	ofLogWarning("CreepyPortrait::setup") << "shader loaded: " << skullVertexShader << " + " << skullFragmentShader;
 	// Load models
 	if (model == "skull" || model == "all") {
 		models.push_back(Model({"models/skull_mesh_1.ply", "models/skull_mesh_2.ply"},
@@ -43,6 +48,7 @@ void CreepyPortrait::setup(){
 								0.0,	// Don't rotate the skull.
 								true,	// Has eyes.
 								"eye.png"));
+		ofLogWarning("CreepyPortrait::setup") << "model loaded: skull";
 	}
 	if (model == "jackevil" || model == "all") {
 		models.push_back(Model({"models/jack_evil_mesh_1.ply", "models/jack_evil_mesh_2.ply"},
@@ -53,6 +59,7 @@ void CreepyPortrait::setup(){
 								6.5,		// Scale the pumpkin up in size.
 								-40.0,		// Move the pumpkin down to center.
 								0.0)); 		// Don't rotate the evil pumpkin.
+		ofLogWarning("CreepyPortrait::setup") << "model loaded: jackevil";
 	}
 	if (model == "jackhappy" || model == "all") {
 		models.push_back(Model({"models/jack_happy_mesh_1.ply", "models/jack_happy_mesh_2.ply"},
@@ -63,6 +70,7 @@ void CreepyPortrait::setup(){
 								6.5,		// Scale the pumpkin up in size.
 								-40.0,		// Move the pumpkin down to center.
 								-4.0));		// Rotate the happy pumpkin to better face center.
+		ofLogWarning("CreepyPortrait::setup") << "model loaded: jackhappy";
 	}
 	// Parallel name list - must match models.push_back order above
 	modelNames.clear();
@@ -310,8 +318,9 @@ void CreepyPortrait::updateCurrentRotation() {
 	// Phase 6 - Audio state machine
 	bool faceNow = detector.isFaceDetected();
 	if (faceNow && audioState == AUDIO_IDLE) {
-		// Face appeared - play clip (loaded once at setup)
+		// Face appeared - play clip
 		soundPlayer.play();
+		ofLogWarning("CreepyPortrait") << "audio playing: " << audioClips[0];
 		audioState = AUDIO_TRIGGERED;
 	} else if (!faceNow && audioState != AUDIO_IDLE) {
 		// Face lost - stop audio
@@ -367,6 +376,9 @@ void CreepyPortrait::keyPressed(int key){
 	}
 	else if (key == 'r') {
 		rotateSkull = !rotateSkull;
+		if (rotateSkull) {
+			faceLastSeen = ofGetElapsedTimef(); // exit wander when r activates
+		}
 	}
 	else if (key == 'm') {
 		currentModel++;
@@ -390,8 +402,13 @@ void CreepyPortrait::keyPressed(int key){
 		soundPlayer.play();
 	}
 	else if (key == 'w') {
-		// w key - force wander mode immediately
-		faceLastSeen = -99999.0f;
+		// w key - toggle wander via explicit flag
+		forceWander = !forceWander;
+		if (forceWander) {
+			faceLastSeen = -99999.0f;
+		} else {
+			faceLastSeen = ofGetElapsedTimef();
+		}
 	}
 	else if (key == 'e') {
 		// e key - toggle eye animation on/off
@@ -461,7 +478,7 @@ std::string CreepyPortrait::getSysInfoString() {
     time_t now = time(nullptr);
     char timebuf[64];
     strftime(timebuf, sizeof(timebuf), "%Y-%m-%d  %H:%M:%S", localtime(&now));
-    out << "Date/Time : " << timebuf << "\n";
+    out << "Date/Time    : " << timebuf << "\n";
 
     // App uptime
     float appSecs = ofGetElapsedTimef() - appStartTime;
@@ -470,7 +487,7 @@ std::string CreepyPortrait::getSysInfoString() {
     int as_ = (int)appSecs % 60;
     char appbuf[32];
     snprintf(appbuf, sizeof(appbuf), "%02dh %02dm %02ds", ah, am, as_);
-    out << "App uptime: " << appbuf << "\n";
+    out << "App uptime   : " << appbuf << "\n";
 
     // System uptime + boot time
     {
@@ -484,7 +501,7 @@ std::string CreepyPortrait::getSysInfoString() {
             int um = (int)(uptimeSecs / 60) % 60;
             char upbuf[32];
             snprintf(upbuf, sizeof(upbuf), "%02dh %02dm", uh, um);
-            out << "System up : " << upbuf << "  (booted " << bootbuf << ")\n";
+            out << "System up    : " << upbuf << "  (booted " << bootbuf << ")\n";
         }
     }
 
@@ -492,7 +509,7 @@ std::string CreepyPortrait::getSysInfoString() {
     {
         char hbuf[256] = {};
         if (gethostname(hbuf, sizeof(hbuf)) == 0)
-            out << "Hostname  : " << hbuf << "\n";
+            out << "Hostname     : " << hbuf << "\n";
     }
 
     // IP addresses (all active non-loopback interfaces)
@@ -509,7 +526,7 @@ std::string CreepyPortrait::getSysInfoString() {
                     inet_ntop(AF_INET,
                         &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr,
                         ipbuf, sizeof(ipbuf));
-                    out << "IP (" << iname << ")   : " << ipbuf << "\n";
+                    { std::string lbl = "IP (" + iname + ")"; while ((int)lbl.size() < 12) lbl += " "; out << lbl << " : " << ipbuf << "\n"; }
                 }
             }
             // MAC addresses via sysfs
@@ -522,7 +539,7 @@ std::string CreepyPortrait::getSysInfoString() {
                     std::ifstream mf("/sys/class/net/" + iname + "/address");
                     std::string mac;
                     if (std::getline(mf, mac))
-                        out << "MAC (" << iname << ")  : " << mac << "\n";
+                        { std::string lbl = "MAC (" + iname + ")"; while ((int)lbl.size() < 12) lbl += " "; out << lbl << " : " << mac << "\n"; }
                 }
             }
             freeifaddrs(ifap);
@@ -535,7 +552,7 @@ std::string CreepyPortrait::getSysInfoString() {
         std::string line;
         if (std::getline(f, line)) {
             if (line.size() > 58) line = line.substr(0, 58) + "...";
-            out << "Kernel    : " << line << "\n";
+            out << "Kernel       : " << line << "\n";
         }
     }
 
@@ -550,7 +567,7 @@ std::string CreepyPortrait::getSysInfoString() {
                 if (colon != std::string::npos) {
                     std::string cpu = line.substr(colon + 2);
                     if (cpu.size() > 42) cpu = cpu.substr(0, 42) + "...";
-                    out << "CPU model : " << cpu << "\n";
+                    out << "CPU model    : " << cpu << "\n";
                     found = true;
                 }
             }
@@ -564,7 +581,7 @@ std::string CreepyPortrait::getSysInfoString() {
         if (f >> freqKhz) {
             char fbuf[32];
             snprintf(fbuf, sizeof(fbuf), "%.0f MHz", freqKhz / 1000.0f);
-            out << "CPU freq  : " << fbuf << "\n";
+            out << "CPU freq     : " << fbuf << "\n";
         }
     }
 
@@ -576,7 +593,7 @@ std::string CreepyPortrait::getSysInfoString() {
             float c = millideg / 1000.0f;
             char tbuf[64];
             snprintf(tbuf, sizeof(tbuf), "%.1f C  (%.1f F)", c, c * 9.0f / 5.0f + 32.0f);
-            out << "CPU temp  : " << tbuf << "\n";
+            out << "CPU temp     : " << tbuf << "\n";
         }
     }
 
@@ -595,7 +612,7 @@ std::string CreepyPortrait::getSysInfoString() {
             char rbuf[64];
             snprintf(rbuf, sizeof(rbuf), "%.0f MB used / %.0f MB total  (%.0f%% used)",
                      usedMB, totalMB, 100.0f * usedMB / totalMB);
-            out << "RAM       : " << rbuf << "\n";
+            out << "RAM          : " << rbuf << "\n";
         }
     }
 
@@ -609,7 +626,7 @@ std::string CreepyPortrait::getSysInfoString() {
             char dbuf[64];
             snprintf(dbuf, sizeof(dbuf), "%.1f GB used / %.1f GB total  (%.0f%% used)",
                      usedGB, totalGB, 100.0f * usedGB / totalGB);
-            out << "Disk /    : " << dbuf << "\n";
+            out << "Disk /       : " << dbuf << "\n";
         }
     }
 
@@ -620,18 +637,18 @@ std::string CreepyPortrait::getSysInfoString() {
     {
         char fpsbuf[32];
         snprintf(fpsbuf, sizeof(fpsbuf), "%.1f", ofGetFrameRate());
-        out << "FPS       : " << fpsbuf << "\n";
+        out << "FPS          : " << fpsbuf << "\n";
     }
 
     // Current model name
     if (currentModelIndex >= 0 && currentModelIndex < (int)modelNames.size())
-        out << "Model     : " << modelNames[currentModelIndex] << "\n";
+        out << "Model        : " << modelNames[currentModelIndex] << "\n";
 
     // Rotation angles
     {
         char rotbuf[64];
         snprintf(rotbuf, sizeof(rotbuf), "x=%.1f  y=%.1f", currentRotation.x, currentRotation.y);
-        out << "Rotation  : " << rotbuf << "\n";
+        out << "Rotation     : " << rotbuf << "\n";
     }
 
     // Face state
@@ -642,7 +659,7 @@ std::string CreepyPortrait::getSysInfoString() {
             snprintf(fbuf, sizeof(fbuf), "YES");
         else
             snprintf(fbuf, sizeof(fbuf), "no  (%.0fs ago)", sinceface);
-        out << "Face      : " << fbuf << "\n";
+        out << "Face         : " << fbuf << "\n";
     }
 
     return out.str();

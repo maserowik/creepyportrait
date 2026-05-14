@@ -98,7 +98,30 @@ int main(int argc, char* argv[]){
 	cout << "Creepy Portrait v1.0" << endl;
 	cout << "Copyright 2013 Tony DiCola (tony@tonydicola.com)" << endl;
 	cout << "Homepage: https://github.com/tdicola/creepyportrait" << endl << endl;
-	ofSetLogLevel(OF_LOG_VERBOSE);
+
+	// Phase 14 - Log level from --loglevel arg, default warning
+	ofLogLevel logLevel = OF_LOG_WARNING;
+	std::string logLevelName = "warning";
+	for (int i = 1; i < argc; i++) {
+		std::string arg(argv[i]);
+		if (arg == "--loglevel" && i + 1 < argc) {
+			std::string lvl(argv[++i]);
+			if      (lvl == "debug")   { logLevel = OF_LOG_VERBOSE; logLevelName = "debug"; }
+			else if (lvl == "info")    { logLevel = OF_LOG_NOTICE;  logLevelName = "info"; }
+			else if (lvl == "warning") { logLevel = OF_LOG_WARNING; logLevelName = "warning"; }
+			else if (lvl == "error")   { logLevel = OF_LOG_ERROR;   logLevelName = "error"; }
+		}
+	}
+	// Phase 14 - Create logs dir and start file logging before anything else
+	ofDirectory::createDirectory("bin/data/logs", false, false);
+	ofLogToFile("bin/data/logs/creepyportrait.log", true);
+	ofSetLogLevel(logLevel);
+	ofLogWarning("main") << "=== Creepy Portrait starting ==="
+		<< " pid=" << getpid()
+		<< " device=" << (argc >= 2 ? argv[1] : "?")
+		<< " model=" << (argc >= 3 ? argv[2] : "skull")
+		<< " loglevel=" << logLevelName
+		<< " logfile=bin/data/logs/creepyportrait.log";
 	// Parse video device parameter
 	if (argc < 2) {
 		cout << "ERROR: Must specify either a video device ID or pi as a command line parameter!" << endl << endl;
