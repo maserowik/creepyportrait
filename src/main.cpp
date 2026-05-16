@@ -95,9 +95,11 @@ void configureApp(int videoDeviceId, bool usePiCamera, const string& model, Cree
 #endif
 
 int main(int argc, char* argv[]){
-	cout << "Creepy Portrait v1.0" << endl;
-	cout << "Copyright 2013 Tony DiCola (tony@tonydicola.com)" << endl;
-	cout << "Homepage: https://github.com/tdicola/creepyportrait" << endl << endl;
+	cout << "Creepy Portrait v5.16.2026" << endl;
+	cout << "Original by Tony DiCola (tony@tonydicola.com)" << endl;
+	cout << "Original homepage: https://github.com/tdicola/creepyportrait" << endl;
+	cout << "Modernized for openFrameworks 0.12+ on Raspberry Pi 4/5 by @maserowik" << endl;
+	cout << "https://github.com/maserowik/creepyportrait" << endl << endl;
 
 	// Phase 14 - Log level from --loglevel arg, default warning
 	ofLogLevel logLevel = OF_LOG_WARNING;
