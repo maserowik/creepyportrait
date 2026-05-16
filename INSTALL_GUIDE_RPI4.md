@@ -274,7 +274,7 @@ You should see spinning 3D shapes on screen. Press `Ctrl+C` to quit.
 
 ```bash
 cd ~/openFrameworks/apps/myApps
-git clone -b update_test https://github.com/maserowik/creepyportrait creepyportrait
+git clone https://github.com/maserowik/creepyportrait creepyportrait
 cd creepyportrait
 make -j$(nproc) Release
 ```
@@ -504,9 +504,9 @@ sudo dphys-swapfile swapon
 Try compiling again.
 
 **`ofGLProgrammableRenderer` compile errors**
-Make sure you cloned from the `update_test` branch:
+Make sure you cloned from the `main` branch:
 ```bash
-git clone -b update_test https://github.com/maserowik/creepyportrait creepyportrait
+git clone https://github.com/maserowik/creepyportrait creepyportrait
 ```
 
 ---
