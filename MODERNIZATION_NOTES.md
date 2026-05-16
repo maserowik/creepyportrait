@@ -230,6 +230,7 @@ The 3D models are the originals from the Video Copilot Halloween pack. They have
 ## Known Issues and Limitations
 
 - The `m` key to cycle between models does not work when launched with the `all` argument. Launch each model directly using its own command line argument instead.
+- Jaw animation does not work on the pumpkin models. The pumpkin meshes consist of a body (mesh_1, 12936 vertices) and a lid (mesh_2, 7879 vertices) — the carved mouth is cut into the body mesh and is not a separate piece. True jaw animation would require creating a new mouth mesh in 3D modelling software (e.g. Blender) and exporting it as a separate PLY file. For now the pumpkins track faces and animate eyes but the jaw stays static.
 - The Pi camera is not supported on modern Pi OS (Bullseye 2021 and later). Always use a USB webcam.
 - Running over VNC produces a white skull with no textures because VNC software rendering does not support the hardware OpenGL shaders. Use a physical HDMI monitor.
 - `TARGET_RASPBERRY_PI` is not defined by the build system on modern Pi OS, so the Pi always uses the desktop configuration block in `main.cpp`. The Pi-specific config block exists but is never activated. This is harmless — the desktop config works correctly on Pi.
