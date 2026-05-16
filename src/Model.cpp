@@ -126,11 +126,11 @@ void Model::draw(ofShader& shader, glm::vec2 eyeRot, float twitchAmt, glm::vec2 
 		eyeShader.setUniform1f("blinkProgress", twitchAmt);
 		eyeShader.setUniform2f("pupilOffset", microsaccade.x, microsaccade.y);
 		ofPushMatrix();
-		ofTranslate(-68, 24, 190);
+		ofTranslate(-68, 24, 175);
 		leftEyeQuad.draw();
 		ofPopMatrix();
 		ofPushMatrix();
-		ofTranslate(82, 20, 190);
+		ofTranslate(82, 20, 175);
 		rightEyeQuad.draw();
 		ofPopMatrix();
 		eyeShader.end();

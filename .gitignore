@@ -30,3 +30,7 @@ creepy_portrait_simulator*.html
 fix_main.sh
 *.py
 *.tar.gz
+bin/data/logs/
+bin/data/face_detected
+bin/data/led_state.txt
+bin/data/led_audio.txt
