@@ -154,6 +154,7 @@ private:
 	bool wasFaceDetected = false;
 	bool wasWandering = false;
         bool forceWander = false;
+        int ledCycleState = -1; // -1=auto, 0=ember, 1=active, 2=fade
 
 	// Microsaccade
 	float microsaccadeTimer = 0.0f;
