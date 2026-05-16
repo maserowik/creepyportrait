@@ -1,6 +1,6 @@
 # Creepy Portrait
 
-A life-sized 3D skull (or jack-o-lantern) that watches you. Point a webcam at anyone and the skull slowly turns its head to follow them. When nobody is around it wanders on its own, looking around the room. The eyes blink, pulse, and dart around. Play it on a monitor inside a decorative frame for a Halloween display that will genuinely unsettle people.
+A life-sized 3D skull (or jack-o-lantern) that watches you. Point a webcam at anyone and the skull slowly turns its head to follow them. When nobody is around it wanders on its own, looking around the room. The eyes blink, pulse, and dart around. It plays spooky audio clips. An optional LED strip behind the frame flickers like candlelight and reacts to whoever is standing in front of it. Put it all inside a decorative frame on your wall and it will genuinely unsettle people.
 
 **You do not need any programming experience to set this up.** Every step is written out exactly as you need to type it.
 
@@ -9,11 +9,13 @@ A life-sized 3D skull (or jack-o-lantern) that watches you. Point a webcam at an
 ## What It Does
 
 - **Follows your face** — the skull turns left, right, up and down to track whoever is standing in front of the camera
-- **Wanders when alone** — after 10 minutes with nobody detected, the skull slowly looks around the room in a figure-8 pattern and drifts around the screen using organic sine wave movement
-- **Animated eyes** — bloodshot eyes that pulse, blink with a realistic eyelid sweeping down and back up, and make subtle random movements
-- **Jaw movement** — the jaw opens and closes in sync with audio
-- **Sound** — plays audio clips when a face is detected
+- **Wanders when alone** — after 10 minutes with nobody detected, the skull slowly looks around the room and drifts around the screen using organic sine wave movement
+- **Animated eyes** — bloodshot eyes that pulse, blink with a realistic three-phase eyelid animation, and make subtle random micro-movements
+- **Jaw movement** — the jaw opens and closes in sync with whatever audio is playing
+- **Spooky audio** — plays a random audio clip when a face is detected, replays while the face is present, and plays occasionally while wandering
+- **LED candle lighting** — a WS2812B LED strip behind the frame flickers like a candle flame, brightens when someone approaches, and fades when they leave (optional hardware)
 - **Three models** — a skull, an evil jack-o-lantern, and a happy jack-o-lantern
+- **System info overlay** — press `i` to see date, time, uptime, IP address, CPU temperature, RAM usage, current audio clip, LED state, and more
 
 ---
 
@@ -27,9 +29,18 @@ A life-sized 3D skull (or jack-o-lantern) that watches you. Point a webcam at an
 | HDMI monitor | Any | Standard TV or computer monitor works fine. |
 | Micro-HDMI cable or adapter | Amazon | The Pi uses a smaller connector than most TVs. |
 | USB keyboard | Any | Just needed for setup. |
-| Power supply | Official Pi Foundation store | Must be USB-C. 5V/3A for Pi 4. Do not use a phone charger. |
+| Power supply | Official Pi Foundation store | Must be USB-C. 5V/3A for Pi 4, 5V/5A for Pi 5. Do not use a phone charger. |
+| USB speaker | Amazon | Any USB speaker works. Plug it into a USB port on the Pi. |
 | Second computer | Your existing PC or Mac | Just used once to prepare the SD card. |
 | Internet connection | Your home router | Wired ethernet cable recommended during setup. |
+
+**Optional — for the LED candle effect:**
+
+| Item | Notes |
+|------|-------|
+| WS2812B LED strip (30 LED/m) | The exact model matters — other types will not work |
+| 5V 3A power supply | Separate from the Pi's power supply. With bare wire leads, not a USB plug. |
+| Three short wires | About 20cm each, different colours |
 
 ---
 
@@ -44,9 +55,10 @@ Once the program is running, these keys control it:
 | `w` | Make the skull start wandering immediately |
 | `c` | Snap the skull back to face center |
 | `e` | Turn eye animation on or off |
-| `j` | Open or close the jaw |
-| `s` | Play the audio clip |
-| `m` | Switch to the next model (only works when launched with `all`) |
+| `j` | Open or close the jaw manually |
+| `s` | Play a random audio clip immediately |
+| `l` | Cycle the LED strip through its states (ember / active / fade) |
+| `i` | Show or hide the system info overlay |
 | `Ctrl+C` | Quit the program |
 
 ---
@@ -78,7 +90,7 @@ Once the program is running, these keys control it:
 
 ## Installation
 
-See **INSTALL_GUIDE_RPI4.md** for the complete step-by-step setup guide.
+See **INSTALL_GUIDE_RPI4.md** for the complete step-by-step setup guide, including the optional LED strip setup in Appendix A.
 
 ---
 
@@ -96,8 +108,15 @@ To run a specific model:
 ```bash
 MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0 jackevil
 MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0 jackhappy
-MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0 all
 ```
+
+> **Note:** The `m` key to cycle models while running is not currently working. Launch each model using its own command above.
+
+---
+
+## Audio Clips
+
+Place WAV files in `bin/data/audio/` and the skull will pick one at random to play each time. Any number of files works. See the install guide for details.
 
 ---
 

@@ -1,6 +1,6 @@
 # Creepy Portrait — Complete Setup Guide for Raspberry Pi 4 and Pi 5
 
-**What you will end up with:** A Raspberry Pi that boots up and shows a fullscreen 3D skull on your monitor. Point a USB webcam at anyone walking past and the skull slowly turns its head to follow them. When nobody is around it wanders on its own. The eyes blink and move. It is genuinely unsettling.
+**What you will end up with:** A Raspberry Pi that boots up and shows a fullscreen 3D skull on your monitor. Point a USB webcam at anyone walking past and the skull slowly turns its head to follow them. When nobody is around it wanders on its own. The eyes blink and move. It plays spooky audio clips. It is genuinely unsettling.
 
 **No programming experience needed.** Every command is written out exactly as you need to type it. When this guide says "type this" it means type it exactly — every letter, every symbol, every space matters.
 
@@ -27,7 +27,10 @@ The Logitech C270 is the recommended choice — it is inexpensive, widely availa
 Any monitor or TV with an HDMI input works. The Pi 4 and Pi 5 use a smaller connector called Micro-HDMI — you will need either a Micro-HDMI to HDMI cable or an adapter. These cost a few dollars and are available anywhere.
 
 **The power supply:**
-Do not use a phone charger. You need the official Raspberry Pi power supply. For Pi 4 it is 5V/3A USB-C. Using the wrong power supply causes random crashes and corrupted memory cards.
+Do not use a phone charger. You need the official Raspberry Pi power supply. For Pi 4 it is 5V/3A USB-C. For Pi 5 it is 5V/5A USB-C. Using the wrong power supply causes random crashes and corrupted memory cards.
+
+**A speaker:**
+The skull plays audio clips when it detects a face. Any USB speaker works — plug it into one of the USB ports on the Pi. You can also use a 3.5mm speaker plugged into the headphone jack. If you do not have a speaker the skull will still work, just silently.
 
 **A second computer:**
 You need a Windows PC or Mac to prepare the memory card. You only use it once at the beginning. Any computer that has a card reader or a USB card reader dongle will work.
@@ -207,12 +210,21 @@ sudo apt install -y \
   librtaudio-dev \
   libjack-jackd2-dev \
   libopencv-dev \
-  mesa-utils
+  mesa-utils \
+  python3-pip \
+  python3-rpi.gpio
 ```
 
 This takes 5 to 10 minutes. Everything should install without errors.
 
-**Step 4.4 — Verify the installation**
+**Step 4.4 — Install the LED Python library**
+
+This installs the software needed to control the LED strip. If you are not adding an LED strip you can skip this step, but it does not hurt to run it anyway:
+```bash
+sudo pip3 install rpi_ws281x --break-system-packages
+```
+
+**Step 4.5 — Verify the key libraries installed correctly**
 
 Run each of these commands. Each one should print a version number:
 ```bash
@@ -271,13 +283,46 @@ This takes 2 to 5 minutes. You are done when you see `Linking bin/creepyportrait
 
 ---
 
-## Part 7 — Plug In Your Webcam and Run
+## Part 7 — Add Your Audio Clips
 
-**Step 7.1 — Connect the webcam**
+The skull plays spooky audio clips when it detects a face and while it wanders. It comes with no audio files — you provide your own.
+
+**What kind of files work:**
+- Format: WAV files only (not MP3, not AAC)
+- Any sample rate and bit depth works
+- Any length works — short clips of 3 to 15 seconds work best
+- You can have as many clips as you like — the skull picks one at random each time
+
+**Where to put them:**
+
+The audio folder is already created for you. Copy your WAV files into it:
+```
+~/openFrameworks/apps/myApps/creepyportrait/bin/data/audio/
+```
+
+To open this folder in the Pi's file manager, open the Files app from the desktop and navigate to:
+`Home → openFrameworks → apps → myApps → creepyportrait → bin → data → audio`
+
+Then drag and drop your WAV files in.
+
+**What happens without audio files:**
+The skull will still work perfectly — it just will not play any sounds. You can add audio files at any time without rebuilding anything.
+
+**When audio plays:**
+- One clip plays immediately when the skull first detects a face
+- While a face is present, another clip plays every 8 to 20 seconds
+- While the skull is wandering with no face detected, a clip plays every 15 to 45 seconds
+- Press `s` at any time to play a random clip immediately
+
+---
+
+## Part 8 — Plug In Your Webcam and Run
+
+**Step 8.1 — Connect the webcam**
 
 Plug your USB webcam into any USB port on the Pi.
 
-**Step 7.2 — Check the Pi can see it**
+**Step 8.2 — Check the Pi can see it**
 
 Type:
 ```bash
@@ -286,7 +331,7 @@ ls /dev/video*
 
 You should see `/dev/video0` in the list. If you only see numbers like `/dev/video10` or higher with no `video0`, unplug the webcam, wait a few seconds, and plug it back in.
 
-**Step 7.3 — Run the program**
+**Step 8.3 — Run the program**
 
 Type:
 ```bash
@@ -296,20 +341,30 @@ MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0
 
 The window will open fullscreen. Step back 1 to 2 metres from the camera, face it directly, and wait a few seconds. The skull will turn to look at you.
 
+**Step 8.4 — Try the other models**
+
+The skull comes in three versions. To try each one:
+```bash
+MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0 jackevil
+MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0 jackhappy
+```
+
+> **Note:** The `all` argument and `m` key to cycle through models while running is not currently working. Launch each model using its own command above.
+
 ---
 
-## Part 8 — Auto-Start When the Pi Turns On (Optional)
+## Part 9 — Auto-Start When the Pi Turns On (Optional)
 
 If you want the skull to start automatically every time the Pi boots up:
 
-**Step 8.1 — Create the autostart file**
+**Step 9.1 — Create the autostart file**
 
 ```bash
 mkdir -p ~/.config/autostart
 nano ~/.config/autostart/creepyportrait.desktop
 ```
 
-**Step 8.2 — Paste this content into the file**
+**Step 9.2 — Paste this content into the file**
 
 ```ini
 [Desktop Entry]
@@ -319,9 +374,11 @@ Exec=/bin/bash -c 'cd /home/creepyportrait/openFrameworks/apps/myApps/creepyport
 X-GNOME-Autostart-enabled=true
 ```
 
+> **Important:** Replace `creepyportrait` in the path above with whatever username you chose when setting up the Pi. For example if your username is `michael` the path should read `/home/michael/openFrameworks/...`
+
 Save the file by pressing `Ctrl+O` then Enter. Close it by pressing `Ctrl+X`.
 
-**Step 8.3 — Set the Pi to boot to desktop automatically**
+**Step 9.3 — Set the Pi to boot to desktop automatically**
 
 ```bash
 sudo raspi-config
@@ -343,12 +400,14 @@ When the program is running, press these keys to control it:
 | Key | What it does |
 |-----|-------------|
 | `v` | Show or hide the camera view and face detection box on screen |
-| `r` | Make the skull spin around automatically — good for testing |
+| `r` | Make the skull spin around automatically — good for testing without a webcam |
 | `w` | Make the skull start wandering immediately without waiting |
 | `c` | Snap the skull back to face the center of the screen |
 | `e` | Turn eye animation on or off |
-| `j` | Open or close the jaw |
-| `s` | Play the audio clip |
+| `j` | Open or close the jaw manually |
+| `s` | Play a random audio clip immediately |
+| `l` | Cycle the LED candle strip through its states (ember, active, fade) |
+| `i` | Show or hide the system information overlay — displays date, uptime, IP address, CPU temperature, RAM, current audio clip, LED state, and more |
 | `Ctrl+C` | Quit the program |
 
 ---
@@ -391,7 +450,7 @@ make -j$(nproc) Release
 **Wander delay** — how long with no face before the skull starts wandering
 - Setting name: `noFaceWanderSeconds`
 - Default: `600.0` seconds (10 minutes)
-- Decrease for a display where you want the wandering effect more often
+- Decrease if you want the wandering effect to start sooner
 
 ---
 
@@ -415,6 +474,9 @@ The face detector is picking up false positives. Open `src/VideoFaceDetector.cpp
 **The skull movement is very choppy**
 Increase `faceUpdateDelay` to `1.0` or `2.0` in `src/main.cpp` and rebuild.
 
+**No audio plays when a face is detected**
+Check that your WAV files are in the correct folder: `bin/data/audio/`. Press `s` to test — if nothing plays, check your speaker is plugged in and the Pi's volume is turned up. Right-click the speaker icon in the taskbar to check volume.
+
 **No `/dev/video0` after plugging in the webcam**
 Type `lsusb` to see if the Pi can see the webcam at all. Try a different USB port. If it still does not appear, test the webcam on another computer.
 
@@ -425,21 +487,27 @@ cd ~/openFrameworks/apps/myApps/creepyportrait
 ./bin/creepyportrait 0
 ```
 
+**Warning about `ofGstVideoUtils not loaded` repeating constantly**
+This is not an error. It just means the webcam is not plugged in. Plug in the webcam to stop the warnings.
+
 **Compilation fails with out of memory error**
 Add more swap space:
 ```bash
 sudo dphys-swapfile swapoff
 sudo nano /etc/dphys-swapfile
 ```
-Find the line that says `CONF_SWAPSIZE=100` and change `100` to `1024`. Save, exit, then:
+Find the line that says `CONF_SWAPSIZE=100` and change `100` to `1024`. Save with `Ctrl+O` then Enter, exit with `Ctrl+X`, then:
 ```bash
 sudo dphys-swapfile setup
 sudo dphys-swapfile swapon
 ```
 Try compiling again.
 
-**Warning about `ofGstVideoUtils not loaded` repeating constantly**
-This is not an error. It just means the webcam is not plugged in. Plug in the webcam to stop the warnings.
+**`ofGLProgrammableRenderer` compile errors**
+Make sure you cloned from the `update_test` branch:
+```bash
+git clone -b update_test https://github.com/maserowik/creepyportrait creepyportrait
+```
 
 ---
 
@@ -451,6 +519,8 @@ This is not an error. It just means the webcam is not plugged in. Plug in the we
 | Logitech C270 | 60° | Fixed | Good | General use |
 | Logitech C920 | 78° | Auto | Excellent | Permanent wall mount |
 
+Set `videoFOV` in `src/main.cpp` to match your camera's value from the table above.
+
 ---
 
 ## Hardware Compatibility
@@ -458,11 +528,200 @@ This is not an error. It just means the webcam is not plugged in. Plug in the we
 | Pi Model | Works? | Notes |
 |----------|--------|-------|
 | Pi 4 (2GB+) | ✅ Yes | Recommended |
-| Pi 5 | ✅ Yes | Faster |
-| Pi 400 | ✅ Yes | Same as Pi 4 |
+| Pi 5 | ✅ Yes | Faster, better tracking |
+| Pi 400 | ✅ Yes | Same chip as Pi 4 |
 | Pi 3B / 3B+ | ❌ No | Wrong graphics hardware |
 | Pi Zero 2W | ❌ No | Wrong graphics hardware, not enough RAM |
 | Pi 1 / 2 / Zero | ❌ No | Too slow |
+
+**If your Pi is not in the Yes column above, stop — it will not work.**
+
+---
+
+*Original project by Tony DiCola / Adafruit (2013). Modernized for openFrameworks 0.12+ on Raspberry Pi 4/5 by @maserowik.*
+
+---
+---
+
+# Appendix A — Adding an LED Candle Strip
+
+This appendix covers adding a WS2812B LED strip behind your display frame to create an atmospheric candlelight glow that reacts to the skull's state. This is completely optional — the skull works perfectly without it.
+
+When the LED strip is running it produces an organic flickering candle effect. When someone stands in front of the skull the lights brighten and become more active. When they walk away the lights slowly fade back to a dim ember glow. The effect is controlled by a small Python program that runs alongside the skull.
+
+---
+
+## What You Need for the LED Strip
+
+| Item | Notes |
+|------|-------|
+| WS2812B LED strip | Get the 30 LED per metre density. You need enough to go around the inside of your frame. 1 metre is usually enough for a picture frame sized display. Look for "WS2812B 30 LED/m" — this exact model is required, other types will not work with this guide. |
+| 5V 3A power supply | Must be 5 volts, 3 amps (written as 5V 3A). This is separate from the Pi's power supply. Get one with bare wire leads or screw terminals, not a USB plug. |
+| Three short wires | About 20cm each. Any flexible wire works — old USB cable wire, doorbell wire, or hookup wire from a hardware store. You need three different colours to avoid mixing them up. |
+| Small screwdriver | For the screw terminals on the LED strip if it has them, or for stripping wire ends. |
+
+---
+
+## Understanding the LED Strip
+
+Before wiring anything, look at your LED strip. At one end you will see three connections labelled:
+
+- **5V** — power (positive)
+- **GND** — ground (negative)  
+- **DIN** — data input (the signal wire)
+
+> **Important — direction matters:** The strip only works in one direction. Look for a small arrow printed on the strip. The arrow points away from the end you connect to. Always connect to the end where the arrow is pointing away from you.
+
+The strip also has a cut line marked every few LEDs — you can cut it to length there with scissors if needed.
+
+---
+
+## Wiring
+
+You are making three connections. Do this with the Pi and the power supply both switched off.
+
+**Connection 1 — Power to the strip:**
+Connect the positive wire from your 5V power supply to the **5V** pad on the LED strip.
+
+**Connection 2 — Ground:**
+This connection has two parts. Connect the negative wire from your 5V power supply to the **GND** pad on the LED strip. Then run a second wire from that same GND pad on the strip to **Pin 6** on the Raspberry Pi (this is a Ground pin — see the diagram below).
+
+> **Why two ground wires to GND?** The Pi needs to share a common ground with the LED strip or the signal wire will not work correctly. This is the most important part of the wiring.
+
+**Connection 3 — Data signal:**
+Run a wire from the **DIN** pad on the LED strip to **Pin 12** on the Raspberry Pi. Pin 12 is also called GPIO 18.
+
+**Raspberry Pi Pin Layout (the connector on the Pi with 40 pins):**
+
+Looking at the Pi with the USB ports facing away from you, the pins are arranged in two rows. Count from the top-left corner:
+
+```
+Pin 1  (3.3V)    Pin 2  (5V)
+Pin 3  (GPIO 2)  Pin 4  (5V)
+Pin 5  (GPIO 3)  Pin 6  (GND)   ← connect strip GND here
+Pin 7  (GPIO 4)  Pin 8  (GPIO 14)
+Pin 9  (GND)     Pin 10 (GPIO 15)
+Pin 11 (GPIO 17) Pin 12 (GPIO 18) ← connect strip DIN here
+```
+
+Pin 6 is in the right column, third from the top. Pin 12 is in the right column, sixth from the top.
+
+> **Double-check before powering on:** Wrong wiring can damage the Pi or the LED strip. Before switching anything on, confirm: 5V power supply positive → strip 5V, 5V power supply negative → strip GND, strip GND → Pi Pin 6, strip DIN → Pi Pin 12.
+
+---
+
+## Allow the Pi to Control the LEDs
+
+The Pi needs permission to use the GPIO pin for LED control. Run these two commands:
+
+```bash
+sudo usermod -a -G gpio $USER
+echo 'SUBSYSTEM=="gpio", GROUP="gpio", MODE="0660"' | sudo tee /etc/udev/rules.d/99-gpio.rules
+```
+
+Then reboot:
+```bash
+sudo reboot
+```
+
+---
+
+## Set Up the LED Sidecar Program
+
+The LED strip is controlled by a small Python program called `led_candle.py` that runs alongside the skull. It reads a small text file that the skull writes to, and changes the LED behaviour based on what the skull is doing.
+
+**Step A.1 — Check the sidecar file is there**
+
+```bash
+ls ~/openFrameworks/apps/myApps/creepyportrait/led_candle.py
+```
+
+You should see the filename printed back. If you see "No such file or directory" then the file did not come down with the repository — contact the project maintainer.
+
+**Step A.2 — Test the LED strip**
+
+With the LED strip wired up and the 5V power supply switched on, run:
+```bash
+cd ~/openFrameworks/apps/myApps/creepyportrait
+sudo python3 led_candle.py
+```
+
+You should see the LEDs start flickering like candle flame within a few seconds. Press `Ctrl+C` to stop.
+
+If the LEDs do not light up, check your wiring carefully — go back through the wiring section above and confirm every connection.
+
+**Step A.3 — Allow the program to run without sudo**
+
+Normally the LED program needs to run as administrator (sudo). This command allows it to run normally:
+```bash
+sudo bash -c 'echo "creepyportrait ALL=(ALL) NOPASSWD: /usr/bin/python3 /home/creepyportrait/openFrameworks/apps/myApps/creepyportrait/led_candle.py" >> /etc/sudoers'
+```
+
+> **Important:** Replace both instances of `creepyportrait` in that command with your actual username if it is different.
+
+---
+
+## Add the LED Strip to Auto-Start
+
+If you set up the skull to auto-start in Part 9, you need to update that file to also start the LED program. If you have not set up auto-start yet, do Part 9 first.
+
+Open the autostart file:
+```bash
+nano ~/.config/autostart/creepyportrait.desktop
+```
+
+Replace the entire contents with this:
+```ini
+[Desktop Entry]
+Type=Application
+Name=Creepy Portrait
+Exec=/bin/bash -c 'cd /home/creepyportrait/openFrameworks/apps/myApps/creepyportrait && sudo python3 led_candle.py & sleep 3 && MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0'
+X-GNOME-Autostart-enabled=true
+```
+
+> **Important:** Replace `creepyportrait` in the path with your actual username.
+
+Save with `Ctrl+O` then Enter. Exit with `Ctrl+X`. Reboot to test:
+```bash
+sudo reboot
+```
+
+Both the skull and the LED strip should now start automatically when the Pi powers on.
+
+---
+
+## LED Candle States
+
+The LED strip has three states that the skull switches between automatically:
+
+| State | What it looks like | When it happens |
+|-------|--------------------|-----------------|
+| Ember | Very dim, slow deep orange glow with occasional flicker | Nobody has been detected for a while |
+| Active | Bright, lively candle flame with wind gusts and shimmer | A face has just been detected |
+| Fade | Gradually dimming from active back down to ember | A few seconds after the face disappears |
+
+Press `l` while the skull is running to cycle through the states manually for testing.
+
+The `i` key overlay shows the current LED state in the top-right corner of the screen so you can confirm everything is communicating correctly.
+
+---
+
+## LED Troubleshooting
+
+**LEDs do not light up at all**
+Check that the 5V power supply is switched on. Check the wiring — confirm 5V to strip 5V, ground to strip GND, Pi Pin 6 to strip GND, Pi Pin 12 to strip DIN. Make sure you are connecting to the correct end of the strip (the end where the arrow points away from you).
+
+**Only the first few LEDs light up, the rest stay dark**
+The power supply may not be providing enough current. Make sure you are using a 5V 3A supply, not a lower-rated one.
+
+**LEDs light up but show wrong colours or flicker erratically**
+The ground connection between the Pi and the strip is missing or loose. Check that you have a wire running from the strip GND to Pi Pin 6.
+
+**`sudo python3 led_candle.py` shows a permission error**
+Run the usermod command from Step A.3 again and reboot.
+
+**The skull runs but the LEDs stay in ember state and never react**
+The skull and LED program communicate through a file called `led_state.txt` in the `bin/data/` folder. Check that the skull is actually running — press `i` to show the overlay and look for the Candle line. If it says `not running` the LED sidecar is not running. If it says `stale` the sidecar crashed — restart it with `sudo python3 led_candle.py` in a second terminal.
 
 ---
 

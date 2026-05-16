@@ -44,7 +44,7 @@ void CreepyPortrait::setup(){
 								"models/skull_specular_1024.jpg",
 								"models/skull_ao_1024.jpg",
 								"models/skull_normal_1024.jpg",
-								0.95,	// Skull scaled down 5% to prevent jaw clipping.
+								0.85,	// Skull scaled down 15% to prevent jaw clipping.
 								30.0,	// Move the skull up to center.
 								0.0,	// Don't rotate the skull.
 								true,	// Has eyes.
@@ -485,6 +485,20 @@ void CreepyPortrait::keyPressed(int key){
 		// e key - toggle eye animation on/off
 		eyeAnimEnabled = !eyeAnimEnabled;
 		ofLogWarning("CreepyPortrait") << "key e: eye anim " << (eyeAnimEnabled ? "ON" : "OFF");
+	}
+	else if (key == 'l') {
+		// l key - cycle LED candle state: ember -> active -> fade -> ember
+		std::string states[] = {"ember", "active", "fade"};
+		std::string current = "ember";
+		std::ifstream rf(ofToDataPath("led_state.txt"));
+		if (rf.good()) std::getline(rf, current);
+		rf.close();
+		int idx = 0;
+		for (int i = 0; i < 3; i++) { if (states[i] == current) { idx = (i + 1) % 3; break; } }
+		std::ofstream wf(ofToDataPath("led_state.txt"));
+		wf << states[idx];
+		wf.close();
+		ofLogWarning("CreepyPortrait") << "key l: LED state -> " << states[idx];
 	}
 }
 
