@@ -370,7 +370,7 @@ nano ~/.config/autostart/creepyportrait.desktop
 [Desktop Entry]
 Type=Application
 Name=Creepy Portrait
-Exec=/bin/bash -c 'cd /home/creepyportrait/openFrameworks/apps/myApps/creepyportrait && MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0'
+Exec=/bin/bash -c 'sleep 8 && cd /home/creepyportrait/openFrameworks/apps/myApps/creepyportrait && MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0'
 X-GNOME-Autostart-enabled=true
 ```
 
@@ -663,23 +663,27 @@ sudo bash -c 'echo "creepyportrait ALL=(ALL) NOPASSWD: /usr/bin/python3 /home/cr
 
 ## Add the LED Strip to Auto-Start
 
-If you set up the skull to auto-start in Part 9, you need to update that file to also start the LED program. If you have not set up auto-start yet, do Part 9 first.
+If you set up the skull to auto-start in Part 9, you need to create a second autostart file for the LED program. The skull and the LED sidecar each have their own separate autostart file. Do not replace the skull's file — create a new one alongside it.
 
-Open the autostart file:
+Make sure the skull autostart file from Part 9 is already in place. If not, do Part 9 first.
+
+Create a second autostart file for the LED sidecar:
 ```bash
-nano ~/.config/autostart/creepyportrait.desktop
+nano ~/.config/autostart/ledcandle.desktop
 ```
 
-Replace the entire contents with this:
+Paste this content:
 ```ini
 [Desktop Entry]
 Type=Application
-Name=Creepy Portrait
-Exec=/bin/bash -c 'cd /home/creepyportrait/openFrameworks/apps/myApps/creepyportrait && sudo python3 led_candle.py & sleep 3 && MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0'
+Name=LED Candle
+Exec=/bin/bash -c 'sleep 12 && sudo python3 /home/creepyportrait/openFrameworks/apps/myApps/creepyportrait/led_candle.py --loglevel warning'
 X-GNOME-Autostart-enabled=true
 ```
 
 > **Important:** Replace `creepyportrait` in the path with your actual username.
+
+> **Why sleep 12?** The LED sidecar waits 12 seconds on boot — 4 seconds longer than the skull — to make sure the skull has fully started and created its state files before the sidecar tries to read them.
 
 Save with `Ctrl+O` then Enter. Exit with `Ctrl+X`. Reboot to test:
 ```bash
