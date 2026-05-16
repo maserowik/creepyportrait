@@ -127,6 +127,7 @@ private:
 	float audioRepeatTimer = 0.0f;   // counts up since last clip ended
 	float audioRepeatDelay = 12.0f;  // randomised gap before replay
 	float audioWanderTimer = 30.0f;  // countdown to next wander clip
+	std::string currentClipName = "none";  // last clip loaded
 
 	// Phase 3 - Eye system
 	glm::vec2 eyeRotation;
@@ -154,7 +155,6 @@ private:
 	bool wasFaceDetected = false;
 	bool wasWandering = false;
         bool forceWander = false;
-        int ledCycleState = -1; // -1=auto, 0=ember, 1=active, 2=fade
 
 	// Microsaccade
 	float microsaccadeTimer = 0.0f;

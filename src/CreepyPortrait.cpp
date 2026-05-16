@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <sys/statvfs.h>
+#include <sys/stat.h>
 #include <ctime>
 #include <ifaddrs.h>
 #include <arpa/inet.h>
@@ -12,18 +13,6 @@ using namespace std;
 //--------------------------------------------------------------
 void CreepyPortrait::setup(){
     appStartTime = ofGetElapsedTimef();
-    // Phase 13 - LED candle: initialise state files
-    {
-        ofFile ledStateFile;
-        ledStateFile.open("led_state.txt", ofFile::WriteOnly);
-        ledStateFile << "ember" << std::endl;
-        ledStateFile.close();
-        ofFile ledAudioFile;
-        ledAudioFile.open("led_audio.txt", ofFile::WriteOnly);
-        ledAudioFile << "0.0" << std::endl;
-        ledAudioFile.close();
-        ofLogWarning("CreepyPortrait::setup") << "LED state files initialised";
-    }
 	ofSetVerticalSync(true);
 	// Make texture coordinates go from 0...1
 	ofDisableArbTex();
@@ -109,6 +98,7 @@ void CreepyPortrait::setup(){
 		for (auto& c : audioClips) ofLogWarning("CreepyPortrait::setup") << "  " << c;
 	}
 	soundPlayer.load(audioClips[0]);
+	currentClipName = ofFilePath::getFileName(audioClips[0]);
 	soundPlayer.setLoop(false);
 	soundPlayer.setVolume(1.0f);
 	audioRepeatDelay = ofRandom(8.0f, 20.0f);
@@ -216,41 +206,6 @@ void CreepyPortrait::updateCurrentRotation() {
 	float time = ofGetElapsedTimef();
 	float delta = time - lastUpdate;
 	lastUpdate = time;
-    // Phase 13 - LED candle: write state and audio files each frame
-    {
-        // Determine face state
-        bool faceNow = (video && detector.isFaceDetected());
-        float sinceface = time - faceLastSeen;
-        std::string ledState;
-        if (ledCycleState >= 0) {
-            // Manual hotkey override
-            if (ledCycleState == 0) ledState = "ember";
-            else if (ledCycleState == 1) ledState = "active";
-            else ledState = "fade";
-        } else {
-            // Automatic from face detection
-            if (faceNow) {
-                ledState = "active";
-            } else if (sinceface < 5.0f) {
-                ledState = "fade";
-            } else {
-                ledState = "ember";
-            }
-        }
-        ofFile ledStateFile;
-        ledStateFile.open("led_state.txt", ofFile::WriteOnly);
-        ledStateFile << ledState << std::endl;
-        ledStateFile.close();
-        // Write audio amplitude
-        float* spectrum = ofSoundGetSpectrum(64);
-        float amp = 0.0f;
-        for (int i = 0; i < 8; i++) amp += spectrum[i];
-        amp /= 8.0f;
-        ofFile ledAudioFile;
-        ledAudioFile.open("led_audio.txt", ofFile::WriteOnly);
-        ledAudioFile << amp << std::endl;
-        ledAudioFile.close();
-    }
 	if (rotateSkull) {
 		// Rotate the skull around the Y axis.  Don't do any face detection.
 		// Good for testing the shaders.
@@ -306,8 +261,8 @@ void CreepyPortrait::updateCurrentRotation() {
 	}
 	// Phase 7 - Idle wander when no face for noFaceWanderSeconds
 	if (!rotateSkull && (time - faceLastSeen) > noFaceWanderSeconds) {
-		currentRotation.x = sin(time * 0.37f + 1.3f) * 28.0f + sin(time * 0.13f + 0.7f) * 12.0f;
-		currentRotation.y = sin(time * 0.29f + 2.1f) * 40.0f + sin(time * 0.07f + 1.5f) * 20.0f;
+		currentRotation.x = sin(time * 0.37f + 1.3f) * 12.0f + sin(time * 0.13f + 0.7f) * 5.0f;
+		currentRotation.y = sin(time * 0.29f + 2.1f) * 20.0f + sin(time * 0.07f + 1.5f) * 8.0f;
 		// Phase 8 - Float Drift during wander
 		wanderDrift.x = sin(time * 0.11f + 0.5f) * 80.0f + sin(time * 0.07f + 1.2f) * 30.0f;
 		wanderDrift.y = sin(time * 0.09f + 2.3f) * 40.0f + sin(time * 0.05f + 0.8f) * 20.0f;
@@ -379,7 +334,6 @@ void CreepyPortrait::updateCurrentRotation() {
 	}
 	// Phase 10 - Audio state machine (random clips, replay, wander audio)
 	bool faceNow = detector.isFaceDetected();
-	{ FILE* sf = fopen("bin/data/face_detected", "w"); if (sf) { fprintf(sf, "%d", faceNow ? 1 : 0); fclose(sf); } }
 	if (!audioClips.empty()) {
 		bool wandering = (!rotateSkull && (time - faceLastSeen) > noFaceWanderSeconds);
 		if (faceNow && audioState == AUDIO_IDLE) {
@@ -387,6 +341,7 @@ void CreepyPortrait::updateCurrentRotation() {
 			int idx = (int)ofRandom(0, (float)audioClips.size());
 			idx = ofClamp(idx, 0, (int)audioClips.size() - 1);
 			soundPlayer.load(audioClips[idx]);
+			currentClipName = ofFilePath::getFileName(audioClips[idx]);
 			soundPlayer.play();
 			ofLogWarning("CreepyPortrait") << "audio playing: " << audioClips[idx];
 			audioState = AUDIO_TRIGGERED;
@@ -396,6 +351,13 @@ void CreepyPortrait::updateCurrentRotation() {
 			// Face lost (not wandering) - stop audio
 			soundPlayer.stop();
 			audioState = AUDIO_IDLE;
+		} else if (audioState == AUDIO_TRIGGERED && soundPlayer.isPlaying()) {
+			audioState = AUDIO_PLAYING;
+		} else if (audioState == AUDIO_PLAYING && !soundPlayer.isPlaying()) {
+			// Clip finished
+			audioState = AUDIO_IDLE;
+			audioRepeatTimer = 0.0f;
+			audioRepeatDelay = ofRandom(8.0f, 20.0f);
 		} else if (faceNow && audioState == AUDIO_IDLE) {
 			// Face still present - count down to replay
 			audioRepeatTimer += delta;
@@ -403,21 +365,13 @@ void CreepyPortrait::updateCurrentRotation() {
 				int idx = (int)ofRandom(0, (float)audioClips.size());
 				idx = ofClamp(idx, 0, (int)audioClips.size() - 1);
 				soundPlayer.load(audioClips[idx]);
+				currentClipName = ofFilePath::getFileName(audioClips[idx]);
 				soundPlayer.play();
 				ofLogWarning("CreepyPortrait") << "audio replay: " << audioClips[idx];
 				audioState = AUDIO_TRIGGERED;
 				audioRepeatTimer = 0.0f;
 				audioRepeatDelay = ofRandom(8.0f, 20.0f);
 			}
-		}
-		// State transitions - run always, regardless of face state
-		if (audioState == AUDIO_TRIGGERED && soundPlayer.isPlaying()) {
-			audioState = AUDIO_PLAYING;
-		} else if (audioState == AUDIO_PLAYING && !soundPlayer.isPlaying()) {
-			// Clip finished
-			audioState = AUDIO_IDLE;
-			audioRepeatTimer = 0.0f;
-			audioRepeatDelay = ofRandom(8.0f, 20.0f);
 		}
 		// Wander audio - occasional random clip during idle wander
 		if (wandering && audioState == AUDIO_IDLE) {
@@ -426,6 +380,7 @@ void CreepyPortrait::updateCurrentRotation() {
 				int idx = (int)ofRandom(0, (float)audioClips.size());
 				idx = ofClamp(idx, 0, (int)audioClips.size() - 1);
 				soundPlayer.load(audioClips[idx]);
+				currentClipName = ofFilePath::getFileName(audioClips[idx]);
 				soundPlayer.play();
 				ofLogWarning("CreepyPortrait") << "audio wander: " << audioClips[idx];
 				audioState = AUDIO_TRIGGERED;
@@ -511,20 +466,10 @@ void CreepyPortrait::keyPressed(int key){
 			int idx = (int)ofRandom(0, (float)audioClips.size());
 			idx = ofClamp(idx, 0, (int)audioClips.size() - 1);
 			soundPlayer.load(audioClips[idx]);
+			currentClipName = ofFilePath::getFileName(audioClips[idx]);
 			soundPlayer.play();
 			ofLogWarning("CreepyPortrait") << "audio s-key: " << audioClips[idx];
 		}
-	}
-	else if (key == 'l') {
-		// l key - cycle LED states: auto -> ember -> active -> fade -> auto
-		ledCycleState++;
-		if (ledCycleState > 2) ledCycleState = -1;
-		std::string stateStr;
-		if (ledCycleState == -1) stateStr = "AUTO";
-		else if (ledCycleState == 0) stateStr = "EMBER";
-		else if (ledCycleState == 1) stateStr = "ACTIVE";
-		else stateStr = "FADE";
-		ofLogWarning("CreepyPortrait") << "key l: LED state override -> " << stateStr;
 	}
 	else if (key == 'w') {
 		// w key - toggle wander via explicit flag
@@ -787,6 +732,35 @@ std::string CreepyPortrait::getSysInfoString() {
         else
             snprintf(fbuf, sizeof(fbuf), "no  (%.0fs ago)", sinceface);
         out << "Face         : " << fbuf << "\n";
+    }
+
+    // Candle LED state
+    {
+        const std::string ledPath = ofToDataPath("led_state.txt");
+        struct stat st;
+        if (stat(ledPath.c_str(), &st) != 0) {
+            out << "Candle       : not running\n";
+        } else {
+            std::ifstream f(ledPath);
+            std::string state;
+            std::getline(f, state);
+            if (state.empty()) state = "unknown";
+            time_t fileAge = time(nullptr) - st.st_mtime;
+            if (fileAge > 10)
+                state += " (stale)";
+            out << "Candle       : " << state << "\n";
+        }
+    }
+    // Current WAV
+    {
+        if (soundPlayer.isPlaying()) {
+            out << "WAV          : " << currentClipName << "\n";
+        } else {
+            if (currentClipName == "none")
+                out << "WAV          : none\n";
+            else
+                out << "WAV          : last: " << currentClipName << "\n";
+        }
     }
 
     return out.str();
