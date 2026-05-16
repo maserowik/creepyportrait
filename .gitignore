@@ -35,3 +35,5 @@ bin/data/face_detected
 bin/data/led_state.txt
 bin/data/led_audio.txt
 src/*.bak*
+
+!led_candle.py
