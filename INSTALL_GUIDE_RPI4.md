@@ -357,26 +357,52 @@ MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0 jackh
 
 If you want the skull to start automatically every time the Pi boots up:
 
-**Step 9.1 — Create the autostart file**
+**Step 9.1 — Create the launch wrapper script**
+
+This script starts the LED sidecar and the skull together. The autostart entry calls this script rather than running the skull directly. This keeps `sudo` out of the autostart file, which is required — putting `sudo` directly in a `.desktop` autostart entry disrupts the desktop session and causes a gray screen.
+
+```bash
+nano ~/openFrameworks/apps/myApps/creepyportrait/launch.sh
+```
+
+Paste this content:
+
+```bash
+#!/bin/bash
+cd /home/creepyportrait/openFrameworks/apps/myApps/creepyportrait
+sudo /usr/bin/python3 /home/creepyportrait/openFrameworks/apps/myApps/creepyportrait/led_candle.py &
+sleep 2
+MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0
+```
+
+> **Important:** Replace both instances of `creepyportrait` with your actual username.
+
+Save with `Ctrl+O` then Enter. Exit with `Ctrl+X`. Make it executable:
+
+```bash
+chmod +x ~/openFrameworks/apps/myApps/creepyportrait/launch.sh
+```
+
+**Step 9.2 — Create the autostart file**
 
 ```bash
 mkdir -p ~/.config/autostart
 nano ~/.config/autostart/creepyportrait.desktop
 ```
 
-**Step 9.2 — Paste this content into the file**
+Paste this content:
 
 ```ini
 [Desktop Entry]
 Type=Application
 Name=Creepy Portrait
-Exec=/bin/bash -c 'sleep 8 && cd /home/creepyportrait/openFrameworks/apps/myApps/creepyportrait && MESA_GL_VERSION_OVERRIDE=3.3 GST_V4L2_USE_LIBV4L2=1 ./bin/creepyportrait 0'
+Exec=/bin/bash -c 'sleep 8 && /home/creepyportrait/openFrameworks/apps/myApps/creepyportrait/launch.sh'
 X-GNOME-Autostart-enabled=true
 ```
 
-> **Important:** Replace `creepyportrait` in the path above with whatever username you chose when setting up the Pi. For example if your username is `michael` the path should read `/home/michael/openFrameworks/...`
+> **Important:** Replace `creepyportrait` in the path with your actual username.
 
-Save the file by pressing `Ctrl+O` then Enter. Close it by pressing `Ctrl+X`.
+Save with `Ctrl+O` then Enter. Exit with `Ctrl+X`.
 
 **Step 9.3 — Set the Pi to boot to desktop automatically**
 
@@ -390,6 +416,8 @@ Reboot to test:
 ```bash
 sudo reboot
 ```
+
+> **Note:** If you have the LED strip, the `launch.sh` script already starts the LED sidecar automatically. You do not need a separate `ledcandle.desktop` file. The separate file approach causes gray screen issues and should not be used.
 
 ---
 
@@ -464,6 +492,18 @@ SSH sessions have no display. You must run the program from a terminal on the Pi
 
 **The skull is completely white with no colours or textures**
 You are running through VNC which does not support the hardware graphics the skull needs. Connect a real HDMI monitor.
+
+**VNC shows only a gray screen after reboot**
+The `wayvnc` service (a Wayland VNC server) may have started and grabbed port 5900 before RealVNC could claim it. To fix this permanently, mask wayvnc so it can never start:
+```bash
+sudo systemctl mask wayvnc
+sudo systemctl restart vncserver-x11-serviced
+```
+Then reconnect your VNC client. To confirm RealVNC owns the port:
+```bash
+sudo ss -tlnp | grep 5900
+```
+The output should show `vncserver-x11-c`, not `wayvnc`.
 
 **The skull does not move when I stand in front of the camera**
 Press `v` to show the camera view. If you can see yourself but no green box appears around your face, try moving closer (about 1 metre), improve the room lighting, and face the camera directly. The face detector works best with even lighting on a face looking straight ahead.
@@ -663,34 +703,11 @@ sudo bash -c 'echo "creepyportrait ALL=(ALL) NOPASSWD: /usr/bin/python3 /home/cr
 
 ## Add the LED Strip to Auto-Start
 
-If you set up the skull to auto-start in Part 9, you need to create a second autostart file for the LED program. The skull and the LED sidecar each have their own separate autostart file. Do not replace the skull's file — create a new one alongside it.
+The LED sidecar is started automatically by the `launch.sh` wrapper script created in Part 9. If you completed Part 9, the LED strip will already start on boot — no additional autostart file is needed.
 
-Make sure the skull autostart file from Part 9 is already in place. If not, do Part 9 first.
+> **Important:** Do not create a separate `ledcandle.desktop` autostart file. Running `sudo` inside a `.desktop` autostart entry disrupts the LXDE desktop session manager and causes a permanent gray screen on both the physical monitor and VNC. The `launch.sh` wrapper approach keeps `sudo` out of the `.desktop` file entirely.
 
-Create a second autostart file for the LED sidecar:
-```bash
-nano ~/.config/autostart/ledcandle.desktop
-```
-
-Paste this content:
-```ini
-[Desktop Entry]
-Type=Application
-Name=LED Candle
-Exec=/bin/bash -c 'sleep 12 && cd /home/creepyportrait/openFrameworks/apps/myApps/creepyportrait && sudo python3 led_candle.py --loglevel warning'
-X-GNOME-Autostart-enabled=true
-```
-
-> **Important:** Replace `creepyportrait` in the path with your actual username.
-
-> **Why sleep 12?** The LED sidecar waits 12 seconds on boot — 4 seconds longer than the skull — to make sure the skull has fully started and created its state files before the sidecar tries to read them.
-
-Save with `Ctrl+O` then Enter. Exit with `Ctrl+X`. Reboot to test:
-```bash
-sudo reboot
-```
-
-Both the skull and the LED strip should now start automatically when the Pi powers on.
+If you skipped Part 9, go back and complete it now — the `launch.sh` script handles both the skull and the LED sidecar together.
 
 ---
 

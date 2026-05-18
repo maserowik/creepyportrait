@@ -133,7 +133,7 @@ The single hardcoded audio clip was replaced with a dynamic system. At startup, 
 
 Three audio trigger contexts were implemented:
 - **Face detected:** A random clip plays immediately when a face first appears
-- **Face present replay:** While a face remains, another random clip plays every 8 to 20 seconds (randomised each time via `audioRepeatDelay`)
+- **Face present replay:** While a face remains, another random clip plays every 8 to 20 seconds (randomised each time via `audioRepeatDelay`). After a clip finishes the state machine enters `AUDIO_WAITING` — a dedicated waiting state that counts down the repeat delay before triggering the next clip. This prevents immediate back-to-back playback.
 - **Wander:** A random clip plays every 15 to 45 seconds while the skull is wandering with no face detected (randomised each time via `audioWanderTimer`)
 
 The `s` key plays a random clip immediately regardless of state, for testing.
@@ -154,7 +154,7 @@ The jaw sensitivity (`ofMap` upper threshold of `0.03f`) was tuned after the fin
 
 ## Phase 13 — LED Candle Lighting
 
-**What changed:** `led_candle.py` (new file), `CreepyPortrait.cpp`
+**What changed:** `led_candle.py` (new file), `CreepyPortrait.cpp`, `CreepyPortrait.h`
 
 A WS2812B 30-LED strip on GPIO 18 provides atmospheric candlelight behind the display frame. Because the LED strip requires root access to the GPIO hardware, it is controlled by a separate Python sidecar process (`led_candle.py`) rather than from within the C++ application. The two processes communicate through two small text files in `bin/data/`:
 
@@ -162,13 +162,18 @@ A WS2812B 30-LED strip on GPIO 18 provides atmospheric candlelight behind the di
 - `led_audio.txt` — written by the C++ app to signal audio amplitude to the sidecar for real-time LED reaction.
 
 **LED states:**
-- `ember` — very dim, slow deep orange glow with occasional organic flicker. The default state when no face has been detected for a while.
-- `active` — bright lively candle flame with wind gust effects, heat shimmer, and blue tint at the base corners. Triggered when a face is detected.
-- `fade` — gradually dims from active back down to ember over 5 seconds. Triggered a few seconds after the face disappears.
+- `ember` — very dim, slow deep orange glow with occasional organic flicker. The default state when no face has been detected for a while (wander mode).
+- `active` — bright lively candle flame with wind gust effects, heat shimmer, and blue tint at the base corners. Triggered automatically when a face is detected.
+- `fade` — gradually dims from active back down to ember over 5 seconds. Triggered automatically when the face disappears but wander mode has not started yet.
+
+**Automatic LED state from face detection:** The C++ app writes `led_state.txt` automatically every time the LED state changes. A `lastLedState` member variable tracks the last written state so the file is only written on transitions, not every frame. The state machine:
+- `faceNow == true` → write `active`
+- No face, not yet in wander mode → write `fade`
+- Wander mode active → write `ember`
+
+The `l` key still cycles the LED state manually through ember → active → fade → ember for testing without needing a face in front of the camera.
 
 The sidecar implements several organic lighting behaviours: base flicker, heat shimmer, wind gust, first light startup sequence, and a nearly-dying ember effect. All are driven by sine waves and random perturbations to avoid mechanical-looking repetition.
-
-The `l` key cycles the LED state manually through ember → active → fade → ember by writing to `led_state.txt` directly from the C++ key handler. This allows testing without needing a face in front of the camera.
 
 Logrotate, sudoers, and autostart configuration for the sidecar are covered in the install guide.
 
@@ -213,6 +218,8 @@ These are the lessons that caused the most time lost during development and are 
 
 **Frame logic lives in `updateCurrentRotation()`:** All per-frame animation logic (jaw lerp, rotation updates, eye animation) must go in `updateCurrentRotation()`. The `update()` function only calls `video->update()`. Putting animation logic in `update()` causes it to run before the video frame is processed and produces incorrect behaviour.
 
+**Autostart architecture:** The LED sidecar must not be launched via a separate `.desktop` autostart file with `sudo` in the Exec line. This disrupts the LXDE session manager and causes a permanent gray screen. The correct approach is a `launch.sh` wrapper script that is called from the single `creepyportrait.desktop` file. The wrapper handles both the LED sidecar (`sudo /usr/bin/python3 led_candle.py`) and the skull launch. The `.desktop` file never contains `sudo`.
+
 **Patching with Python3 only:** When patching source files, always use `python3` with binary-safe file handling and exact byte strings. Never use shell heredoc scripts for patches — they mangle special characters. Always confirm exact whitespace with `cat -A` before writing any patch. The codebase uses tabs for indentation throughout.
 
 **UV space for eye offsets:** All values passed to `pupilOffset` in the eye shader must be in UV coordinate space (typically `±0.05` or less). Passing world-space values causes the texture UV to go wildly out of range and produces vivid stripe artifacts across the eyes.
@@ -232,7 +239,7 @@ The 3D models are the originals from the Video Copilot Halloween pack. They have
 - The `m` key to cycle between models does not work when launched with the `all` argument. Launch each model directly using its own command line argument instead.
 - Jaw animation does not work on the pumpkin models. The pumpkin meshes consist of a body (mesh_1, 12936 vertices) and a lid (mesh_2, 7879 vertices) — the carved mouth is cut into the body mesh and is not a separate piece. True jaw animation would require creating a new mouth mesh in 3D modelling software (e.g. Blender) and exporting it as a separate PLY file. For now the pumpkins track faces and animate eyes but the jaw stays static.
 - The Pi camera is not supported on modern Pi OS (Bullseye 2021 and later). Always use a USB webcam.
-- Running over VNC produces a white skull with no textures because VNC software rendering does not support the hardware OpenGL shaders. Use a physical HDMI monitor.
+- Running over VNC may show a gray screen if the `wayvnc` service starts at boot and grabs port 5900 before RealVNC can claim it. This is fixed permanently by masking wayvnc: `sudo systemctl mask wayvnc`. See the install guide troubleshooting section for details.
 - `TARGET_RASPBERRY_PI` is not defined by the build system on modern Pi OS, so the Pi always uses the desktop configuration block in `main.cpp`. The Pi-specific config block exists but is never activated. This is harmless — the desktop config works correctly on Pi.
 - The LED sidecar (`led_candle.py`) requires root access to the GPIO hardware and must be launched with `sudo`. The `i` overlay will show `stale` if the sidecar stops running — this is the intended way to detect a sidecar crash without opening a separate terminal.
 
