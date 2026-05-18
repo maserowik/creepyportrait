@@ -402,8 +402,8 @@ void CreepyPortrait::updateCurrentRotation() {
 		}
 	}
 	smoothAmplitude = ofLerp(smoothAmplitude, rawAmplitude, 0.15f);
-	float targetJaw = ofMap(smoothAmplitude, 0.0f, 0.03f, 0.0f, 25.0f, true);
-	currentModel->jawAngle = ofLerp(currentModel->jawAngle, targetJaw, 0.08f);
+	float targetJaw = ofMap(smoothAmplitude, 0.0f, jawThreshold, 0.0f, 25.0f, true);
+	currentModel->jawAngle = ofLerp(currentModel->jawAngle, targetJaw, jawLerp);
 }
 
 glm::vec2 CreepyPortrait::cameraPointToAngle(const glm::vec2& point) {
@@ -454,6 +454,22 @@ void CreepyPortrait::keyPressed(int key){
 		faceLastSeen = ofGetElapsedTimef(); // Phase 7 - exit wander mode
 		rotateSkull = false; // stop r rotation mode
 		ofLogWarning("CreepyPortrait") << "key c: center + wander reset";
+	}
+	else if (key == '[') {
+		jawThreshold = max(0.005f, jawThreshold - 0.005f);
+		ofLogWarning("CreepyPortrait") << "key [: jawThreshold " << jawThreshold;
+	}
+	else if (key == ']') {
+		jawThreshold = min(0.1f, jawThreshold + 0.005f);
+		ofLogWarning("CreepyPortrait") << "key ]: jawThreshold " << jawThreshold;
+	}
+	else if (key == '-') {
+		jawLerp = max(0.01f, jawLerp - 0.01f);
+		ofLogWarning("CreepyPortrait") << "key -: jawLerp " << jawLerp;
+	}
+	else if (key == '=') {
+		jawLerp = min(0.5f, jawLerp + 0.01f);
+		ofLogWarning("CreepyPortrait") << "key =: jawLerp " << jawLerp;
 	}
 	else if (key == 'j') {
 		// j key - toggle jaw open/closed only, no audio

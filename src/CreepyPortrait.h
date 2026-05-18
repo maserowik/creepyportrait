@@ -122,6 +122,8 @@ private:
 	AudioState audioState = AUDIO_IDLE;
 	ofSoundPlayer soundPlayer;
 	float smoothAmplitude = 0.0f;
+	float jawThreshold = 0.03f;
+	float jawLerp = 0.08f;
 	std::vector<std::string> audioClips;
 	// Phase 10 - repeat and wander timers
 	float audioRepeatTimer = 0.0f;   // counts up since last clip ended

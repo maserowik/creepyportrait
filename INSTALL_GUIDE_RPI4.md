@@ -677,7 +677,7 @@ Paste this content:
 [Desktop Entry]
 Type=Application
 Name=LED Candle
-Exec=/bin/bash -c 'sleep 12 && sudo python3 /home/creepyportrait/openFrameworks/apps/myApps/creepyportrait/led_candle.py --loglevel warning'
+Exec=/bin/bash -c 'sleep 12 && cd /home/creepyportrait/openFrameworks/apps/myApps/creepyportrait && sudo python3 led_candle.py --loglevel warning'
 X-GNOME-Autostart-enabled=true
 ```
 

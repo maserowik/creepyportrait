@@ -34,7 +34,7 @@ LED_CHANNEL     = 0
 # ── File paths ────────────────────────────────────────────────────────────────
 STATE_FILE      = "bin/data/led_state.txt"
 AUDIO_FILE      = "bin/data/led_audio.txt"
-LOG_FILE        = "bin/data/logs/ledcandle.log"
+LOG_FILE        = "/home/creepyportrait/openFrameworks/apps/myApps/creepyportrait/bin/data/logs/ledcandle.log"
 
 # ── Candle colour palette (R, G, B) ──────────────────────────────────────────
 # Blue tint for base corners
@@ -71,6 +71,11 @@ def setup_logging(level_str):
     handler = logging.handlers.RotatingFileHandler(
         LOG_FILE, maxBytes=5*1024*1024, backupCount=5)
     handler.setFormatter(fmt)
+    _orig_emit = handler.emit
+    def _flushing_emit(record):
+        _orig_emit(record)
+        handler.flush()
+    handler.emit = _flushing_emit
 
     log = logging.getLogger("ledcandle")
     log.setLevel(level)
@@ -314,7 +319,7 @@ class CandleEngine:
 # ── Entry point ───────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser(description="LED Candle Sidecar")
-    parser.add_argument("--loglevel", default="warning",
+    parser.add_argument("--loglevel", default="info",
                         choices=["debug", "info", "warning", "error"])
     args = parser.parse_args()
 
