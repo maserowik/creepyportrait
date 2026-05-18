@@ -117,8 +117,9 @@ private:
 	glm::vec2 oldRotation;
 	bool jawOpen = false;
 	bool eyeAnimEnabled = true;
+	std::string lastLedState = "";
 	// Phase 6/10 - Audio
-	enum AudioState { AUDIO_IDLE, AUDIO_TRIGGERED, AUDIO_PLAYING };
+	enum AudioState { AUDIO_IDLE, AUDIO_TRIGGERED, AUDIO_PLAYING, AUDIO_WAITING };
 	AudioState audioState = AUDIO_IDLE;
 	ofSoundPlayer soundPlayer;
 	float smoothAmplitude = 0.0f;

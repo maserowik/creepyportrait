@@ -334,6 +334,15 @@ void CreepyPortrait::updateCurrentRotation() {
 	}
 	// Phase 10 - Audio state machine (random clips, replay, wander audio)
 	bool faceNow = detector.isFaceDetected();
+	// Phase 13 - Auto LED state based on face detection
+	{
+		std::string ledState = faceNow ? "active" : ((!rotateSkull && (time - faceLastSeen) > noFaceWanderSeconds) ? "ember" : "fade");
+		if (ledState != lastLedState) {
+			std::ofstream lf(ofToDataPath("led_state.txt"));
+			if (lf) { lf << ledState; }
+			lastLedState = ledState;
+		}
+	}
 	if (!audioClips.empty()) {
 		bool wandering = (!rotateSkull && (time - faceLastSeen) > noFaceWanderSeconds);
 		if (faceNow && audioState == AUDIO_IDLE) {
@@ -354,11 +363,11 @@ void CreepyPortrait::updateCurrentRotation() {
 		} else if (audioState == AUDIO_TRIGGERED && soundPlayer.isPlaying()) {
 			audioState = AUDIO_PLAYING;
 		} else if (audioState == AUDIO_PLAYING && !soundPlayer.isPlaying()) {
-			// Clip finished
-			audioState = AUDIO_IDLE;
+			// Clip finished - enter waiting state
+			audioState = AUDIO_WAITING;
 			audioRepeatTimer = 0.0f;
 			audioRepeatDelay = ofRandom(8.0f, 20.0f);
-		} else if (faceNow && audioState == AUDIO_IDLE) {
+		} else if (faceNow && audioState == AUDIO_WAITING) {
 			// Face still present - count down to replay
 			audioRepeatTimer += delta;
 			if (audioRepeatTimer >= audioRepeatDelay) {
